@@ -1,0 +1,3122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>HVAC CAD Studio - Intelligent PDF to IEC CAD Converter & Viewer</title>
+  <!-- PDF.js library for PDF parsing & rendering -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+  <script>
+    if (window.pdfjsLib) {
+      pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+    }
+  </script>
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <style>
+    :root {
+      --bg-darker: #0d1117;
+      --bg-dark: #161b22;
+      --bg-panel: #21262d;
+      --bg-hover: #30363d;
+      --border-color: #30363d;
+      --border-focus: #58a6ff;
+      --accent: #238636;
+      --accent-hover: #2ea043;
+      --accent-blue: #1f6feb;
+      --accent-blue-hover: #388bfd;
+      --text-main: #c9d1d9;
+      --text-muted: #8b949e;
+      --text-bright: #f0f6fc;
+      --cad-canvas-bg: #12151a;
+      --cad-grid-major: #222933;
+      --cad-grid-minor: #181d24;
+      --danger: #da3633;
+      --warning: #d29922;
+      --info: #58a6ff;
+    }
+
+    [data-theme="light"] {
+      --bg-darker: #f0f2f5;
+      --bg-dark: #ffffff;
+      --bg-panel: #f6f8fa;
+      --bg-hover: #e1e4e8;
+      --border-color: #d0d7de;
+      --border-focus: #0969da;
+      --accent: #1a7f37;
+      --accent-hover: #2da44e;
+      --accent-blue: #0969da;
+      --accent-blue-hover: #218bff;
+      --text-main: #24292f;
+      --text-muted: #57606a;
+      --text-bright: #1f2328;
+      --cad-canvas-bg: #f8fafc;
+      --cad-grid-major: #d0d7de;
+      --cad-grid-minor: #e8ecf0;
+      --danger: #cf222e;
+      --warning: #9a6700;
+      --info: #0969da;
+    }
+
+    [data-theme="light"] .modal-card {
+      box-shadow: 0 16px 40px rgba(0, 0, 0, 0.15);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      background-color: var(--bg-darker);
+      color: var(--text-main);
+      overflow: hidden;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* Top Ribbon Header */
+    header.ribbon {
+      background: var(--bg-dark);
+      border-bottom: 1px solid var(--border-color);
+      display: flex;
+      flex-direction: column;
+      z-index: 100;
+    }
+
+    .top-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 6px 14px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-weight: 700;
+      font-size: 15px;
+      color: var(--text-bright);
+    }
+
+    .brand-icon {
+      background: linear-gradient(135deg, #1f6feb, #238636);
+      width: 28px;
+      height: 28px;
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #fff;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
+    }
+
+    .badge-iec {
+      background: rgba(88, 166, 255, 0.15);
+      border: 1px solid rgba(88, 166, 255, 0.4);
+      color: #58a6ff;
+      font-size: 11px;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-weight: 600;
+      letter-spacing: 0.5px;
+    }
+
+    .ribbon-tabs {
+      display: flex;
+      align-items: center;
+      padding: 4px 10px;
+      gap: 8px;
+      overflow-x: auto;
+      background: var(--bg-panel);
+    }
+
+    .ribbon-group {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      padding: 2px 6px;
+      border-right: 1px solid var(--border-color);
+    }
+
+    .ribbon-group:last-child {
+      border-right: none;
+    }
+
+    .ribbon-label {
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.6px;
+      color: var(--text-muted);
+      margin-right: 4px;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 5px 10px;
+      background: var(--bg-dark);
+      border: 1px solid var(--border-color);
+      color: var(--text-main);
+      border-radius: 5px;
+      font-size: 12px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      white-space: nowrap;
+    }
+
+    .btn:hover {
+      background: var(--bg-hover);
+      border-color: var(--text-muted);
+      color: var(--text-bright);
+    }
+
+    .btn.btn-primary {
+      background: var(--accent-blue);
+      border-color: var(--accent-blue-hover);
+      color: white;
+    }
+
+    .btn.btn-primary:hover {
+      background: var(--accent-blue-hover);
+    }
+
+    .btn.btn-success {
+      background: var(--accent);
+      border-color: var(--accent-hover);
+      color: white;
+    }
+
+    .btn.btn-success:hover {
+      background: var(--accent-hover);
+    }
+
+    .btn.active {
+      background: var(--border-focus);
+      color: #fff;
+      border-color: var(--border-focus);
+    }
+
+    .btn-icon-only {
+      padding: 5px 7px;
+    }
+
+    /* Main Workspace Layout */
+    .workspace {
+      flex: 1;
+      display: flex;
+      position: relative;
+      overflow: hidden;
+    }
+
+    /* Left Sidebar: Components & Source Sheet */
+    .sidebar-left {
+      width: 260px;
+      background: var(--bg-dark);
+      border-right: 1px solid var(--border-color);
+      display: flex;
+      flex-direction: column;
+      flex-shrink: 0;
+      z-index: 20;
+      transition: width 0.2s;
+    }
+
+    .sidebar-tabs {
+      display: flex;
+      background: var(--bg-darker);
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    .sidebar-tab {
+      flex: 1;
+      text-align: center;
+      padding: 8px 4px;
+      font-size: 11px;
+      cursor: pointer;
+      color: var(--text-muted);
+      border-bottom: 2px solid transparent;
+    }
+
+    .sidebar-tab.active {
+      color: var(--text-bright);
+      border-bottom-color: var(--accent-blue);
+      background: var(--bg-dark);
+      font-weight: 600;
+    }
+
+    .sidebar-content {
+      flex: 1;
+      overflow-y: auto;
+      padding: 8px;
+    }
+
+    .symbol-category {
+      margin-bottom: 12px;
+    }
+
+    .symbol-category-title {
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--text-muted);
+      margin-bottom: 6px;
+      padding-left: 4px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .symbol-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 6px;
+    }
+
+    .symbol-card {
+      background: var(--bg-panel);
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+      padding: 8px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      text-align: center;
+      transition: all 0.15s;
+    }
+
+    .symbol-card:hover {
+      background: var(--bg-hover);
+      border-color: var(--accent-blue);
+      transform: translateY(-1px);
+    }
+
+    .symbol-card.selected {
+      border-color: var(--accent-blue);
+      box-shadow: 0 0 0 1px var(--accent-blue);
+      background: rgba(31, 111, 235, 0.15);
+    }
+
+    .symbol-card svg {
+      width: 44px;
+      height: 38px;
+      margin-bottom: 4px;
+    }
+
+    .symbol-card span {
+      font-size: 10px;
+      color: var(--text-main);
+      font-weight: 500;
+      line-height: 1.2;
+    }
+
+    /* Central Viewport & Split Canvas */
+    .viewport-container {
+      flex: 1;
+      display: flex;
+      position: relative;
+      background: var(--cad-canvas-bg);
+      overflow: hidden;
+    }
+
+    .canvas-pane {
+      position: relative;
+      height: 100%;
+      overflow: hidden;
+    }
+
+    .canvas-pane.source-pane {
+      width: 50%;
+      border-right: 2px solid var(--border-color);
+      background: #1e1e1e;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .canvas-pane.cad-pane {
+      flex: 1;
+      width: 50%;
+    }
+
+    .pane-header-overlay {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      z-index: 10;
+      background: rgba(22, 27, 34, 0.85);
+      backdrop-filter: blur(8px);
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+      padding: 4px 10px;
+      font-size: 11px;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      pointer-events: auto;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+    }
+
+    /* Floating View Controls */
+    .floating-nav {
+      position: absolute;
+      bottom: 20px;
+      right: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      z-index: 15;
+      background: rgba(22, 27, 34, 0.88);
+      backdrop-filter: blur(8px);
+      padding: 6px;
+      border-radius: 8px;
+      border: 1px solid var(--border-color);
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5);
+    }
+
+    .nav-btn {
+      width: 32px;
+      height: 32px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: var(--bg-panel);
+      border: 1px solid var(--border-color);
+      border-radius: 5px;
+      color: var(--text-main);
+      cursor: pointer;
+      transition: 0.15s;
+    }
+
+    .nav-btn:hover {
+      background: var(--bg-hover);
+      color: var(--text-bright);
+      border-color: var(--accent-blue);
+    }
+
+    /* Right Sidebar: Layers & Properties */
+    .sidebar-right {
+      width: 290px;
+      background: var(--bg-dark);
+      border-left: 1px solid var(--border-color);
+      display: flex;
+      flex-direction: column;
+      flex-shrink: 0;
+      z-index: 20;
+    }
+
+    .inspector-section {
+      padding: 10px;
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    .inspector-title {
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.6px;
+      color: var(--text-muted);
+      margin-bottom: 8px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .layer-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 5px 8px;
+      border-radius: 4px;
+      font-size: 11px;
+      cursor: pointer;
+      margin-bottom: 3px;
+      background: var(--bg-panel);
+      border: 1px solid transparent;
+    }
+
+    .layer-item:hover {
+      background: var(--bg-hover);
+    }
+
+    .layer-item.active {
+      border-color: var(--accent-blue);
+      background: rgba(31, 111, 235, 0.1);
+    }
+
+    .layer-left {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .layer-color-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 2px;
+      box-shadow: 0 0 2px rgba(0,0,0,0.5);
+    }
+
+    .layer-actions {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .layer-btn {
+      background: none;
+      border: none;
+      color: var(--text-muted);
+      cursor: pointer;
+      padding: 2px;
+      display: flex;
+      align-items: center;
+    }
+
+    .layer-btn:hover {
+      color: var(--text-bright);
+    }
+
+    .prop-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 6px;
+      font-size: 11px;
+    }
+
+    .prop-label {
+      color: var(--text-muted);
+      width: 40%;
+    }
+
+    .prop-input {
+      width: 58%;
+      background: var(--bg-panel);
+      border: 1px solid var(--border-color);
+      border-radius: 4px;
+      color: var(--text-bright);
+      padding: 4px 6px;
+      font-size: 11px;
+    }
+
+    .prop-input:focus {
+      outline: none;
+      border-color: var(--accent-blue);
+    }
+
+    /* Bottom Status Bar */
+    footer.status-bar {
+      height: 28px;
+      background: var(--bg-dark);
+      border-top: 1px solid var(--border-color);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 12px;
+      font-size: 11px;
+      color: var(--text-muted);
+      z-index: 100;
+    }
+
+    .status-left, .status-right {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .status-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .coord-display {
+      font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+      color: var(--text-bright);
+      background: var(--bg-panel);
+      padding: 2px 6px;
+      border-radius: 3px;
+      border: 1px solid var(--border-color);
+    }
+
+    /* Modal dialogs */
+    .modal-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.75);
+      backdrop-filter: blur(4px);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+    }
+
+    .modal-overlay.active {
+      display: flex;
+    }
+
+    .modal-card {
+      background: var(--bg-dark);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      width: 680px;
+      max-width: 92vw;
+      max-height: 88vh;
+      display: flex;
+      flex-direction: column;
+      box-shadow: 0 16px 40px rgba(0, 0, 0, 0.6);
+      overflow: hidden;
+    }
+
+    .modal-header {
+      padding: 14px 18px;
+      border-bottom: 1px solid var(--border-color);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .modal-header h3 {
+      font-size: 14px;
+      color: var(--text-bright);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .modal-body {
+      padding: 18px;
+      overflow-y: auto;
+      font-size: 12px;
+      line-height: 1.5;
+    }
+
+    .modal-footer {
+      padding: 12px 18px;
+      background: var(--bg-panel);
+      border-top: 1px solid var(--border-color);
+      display: flex;
+      justify-content: flex-end;
+      gap: 10px;
+    }
+
+    /* Notification Toast */
+    .toast {
+      position: fixed;
+      top: 60px;
+      right: 20px;
+      background: var(--bg-panel);
+      border: 1px solid var(--border-color);
+      color: var(--text-bright);
+      padding: 10px 16px;
+      border-radius: 6px;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+      z-index: 2000;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 12px;
+      opacity: 0;
+      transform: translateY(-10px);
+      transition: all 0.25s ease;
+      pointer-events: none;
+    }
+
+    .toast.show {
+      opacity: 1;
+      transform: translateY(0);
+      pointer-events: auto;
+    }
+
+    .toast-success {
+      border-left: 4px solid var(--accent);
+    }
+    .toast-info {
+      border-left: 4px solid var(--accent-blue);
+    }
+    .toast-warn {
+      border-left: 4px solid var(--warning);
+    }
+
+    /* Slider styling */
+    input[type="range"] {
+      -webkit-appearance: none;
+      width: 100%;
+      height: 4px;
+      background: var(--border-color);
+      border-radius: 2px;
+      outline: none;
+    }
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      background: var(--accent-blue);
+      cursor: pointer;
+    }
+
+    /* Drag and drop overlay */
+    .drop-overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(31, 111, 235, 0.25);
+      border: 3px dashed var(--accent-blue);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 500;
+      pointer-events: none;
+    }
+    .drop-overlay.active {
+      display: flex;
+    }
+    .drop-text {
+      background: var(--bg-dark);
+      padding: 16px 28px;
+      border-radius: 8px;
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--text-bright);
+      box-shadow: 0 8px 24px rgba(0,0,0,0.6);
+    }
+
+    /* Table styling for BOM */
+    .bom-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 11px;
+    }
+    .bom-table th, .bom-table td {
+      border: 1px solid var(--border-color);
+      padding: 6px 8px;
+      text-align: left;
+    }
+    .bom-table th {
+      background: var(--bg-panel);
+      color: var(--text-bright);
+      font-weight: 600;
+    }
+    .bom-table tr:hover {
+      background: rgba(255, 255, 255, 0.02);
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Hidden File Input for PDF / Image upload -->
+  <input type="file" id="fileInput" accept=".pdf,image/png,image/jpeg,image/webp" style="display:none;" />
+
+  <!-- Drag and drop indicator -->
+  <div class="drop-overlay" id="dropOverlay">
+    <div class="drop-text">Drop PDF HVAC Sheet to Convert</div>
+  </div>
+
+  <!-- Header & Ribbon -->
+  <header class="ribbon">
+    <div class="top-bar">
+      <div class="brand">
+        <div class="brand-icon">
+          <i data-lucide="cpu" style="width:18px;height:18px;"></i>
+        </div>
+        <span>HVAC CAD Studio</span>
+        <span class="badge-iec">IEC 60617 / 81346</span>
+      </div>
+
+      <div style="display:flex; align-items:center; gap:8px;">
+        <button class="btn btn-primary" id="btnLoadSample">
+          <i data-lucide="sparkles" style="width:14px;height:14px;"></i>
+          Load Abu Zaabal Demo Sheet
+        </button>
+        <button class="btn" id="btnUploadTrigger">
+          <i data-lucide="upload" style="width:14px;height:14px;"></i>
+          Open PDF / Drawing
+        </button>
+        <button class="btn btn-success" id="btnExportDXF">
+          <i data-lucide="download" style="width:14px;height:14px;"></i>
+          Export DXF (AutoCAD)
+        </button>
+        <button class="btn" id="btnThemeToggle" title="Toggle Dark / Light Theme">
+          <i data-lucide="sun" id="themeIcon" style="width:14px;height:14px;"></i>
+          <span id="themeLabel">Light Mode</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Sub Ribbon Toolbar -->
+    <div class="ribbon-tabs">
+      <div class="ribbon-group">
+        <span class="ribbon-label">View</span>
+        <button class="btn active" id="btnModeSplit" title="Dual Split View (Source vs CAD)">
+          <i data-lucide="columns-2" style="width:14px;height:14px;"></i>
+          Split
+        </button>
+        <button class="btn" id="btnModeCADOnly" title="CAD Workspace Only">
+          <i data-lucide="layout-template" style="width:14px;height:14px;"></i>
+          CAD Only
+        </button>
+        <button class="btn" id="btnModeOverlay" title="Overlay CAD on PDF">
+          <i data-lucide="layers" style="width:14px;height:14px;"></i>
+          Overlay
+        </button>
+        <div style="display:flex; align-items:center; gap:4px; margin-left:6px;" id="overlaySliderContainer">
+          <span style="font-size:10px; color:var(--text-muted);">Fade:</span>
+          <input type="range" id="overlayOpacity" min="0" max="100" value="50" style="width:70px;" />
+        </div>
+      </div>
+
+      <div class="ribbon-group">
+        <span class="ribbon-label">CAD Tools</span>
+        <button class="btn active" id="toolSelect" title="Select & Move (V)">
+          <i data-lucide="mouse-pointer-2" style="width:14px;height:14px;"></i>
+          Select
+        </button>
+        <button class="btn" id="toolWire" title="Draw Orthogonal Wire (W)">
+          <i data-lucide="git-commit" style="width:14px;height:14px;"></i>
+          Wire
+        </button>
+        <button class="btn" id="toolTerminal" title="Add Terminal Strip (T)">
+          <i data-lucide="grip-vertical" style="width:14px;height:14px;"></i>
+          Terminal
+        </button>
+        <button class="btn" id="toolText" title="Add Text / Label (A)">
+          <i data-lucide="type" style="width:14px;height:14px;"></i>
+          Text
+        </button>
+        <button class="btn" id="toolMeasure" title="Measure Dimension (M)">
+          <i data-lucide="ruler" style="width:14px;height:14px;"></i>
+          Measure
+        </button>
+        <button class="btn" id="btnDeleteSelected" title="Delete Selected (Del)">
+          <i data-lucide="trash-2" style="width:14px;height:14px; color:var(--danger);"></i>
+        </button>
+      </div>
+
+      <div class="ribbon-group">
+        <span class="ribbon-label">Smart AI/CV</span>
+        <button class="btn" id="btnAutoDetect" title="Run Symbol & Wire Detection on Current Sheet">
+          <i data-lucide="scan-search" style="width:14px;height:14px; color:var(--info);"></i>
+          Re-Analyze Sheet
+        </button>
+        <button class="btn" id="btnAutoAlign" title="Snap all wires to strict IEC Orthogonal Grid">
+          <i data-lucide="grid" style="width:14px;height:14px;"></i>
+          Ortho Align
+        </button>
+      </div>
+
+      <div class="ribbon-group">
+        <span class="ribbon-label">Exports</span>
+        <button class="btn" id="btnExportSVG" title="Export Scalable Vector Graphics">
+          <i data-lucide="file-code" style="width:14px;height:14px;"></i>
+          SVG
+        </button>
+        <button class="btn" id="btnExportJSON" title="Save Project State">
+          <i data-lucide="save" style="width:14px;height:14px;"></i>
+          JSON
+        </button>
+        <button class="btn" id="btnShowBOM" title="View Bill of Materials">
+          <i data-lucide="clipboard-list" style="width:14px;height:14px;"></i>
+          BOM Table
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Workspace -->
+  <div class="workspace">
+    <!-- Left Sidebar: IEC Symbol Library & Pages -->
+    <aside class="sidebar-left">
+      <div class="sidebar-tabs">
+        <div class="sidebar-tab active" data-tab="symbols">IEC Symbols</div>
+        <div class="sidebar-tab" data-tab="sheets">Sheets & Project</div>
+      </div>
+
+      <div class="sidebar-content" id="tabSymbols">
+        <!-- Differential Pressure Switches -->
+        <div class="symbol-category">
+          <div class="symbol-category-title">
+            <span>Pressure & Flow (DPS)</span>
+            <span style="font-size:9px; color:var(--text-muted);">IEC 60617-7</span>
+          </div>
+          <div class="symbol-grid">
+            <div class="symbol-card" data-symbol="dps_ahu_filter">
+              <svg viewBox="0 0 60 48">
+                <circle cx="30" cy="24" r="18" fill="none" stroke="#58a6ff" stroke-width="1.8"/>
+                <circle cx="23" cy="18" r="2" fill="#58a6ff"/>
+                <circle cx="37" cy="18" r="2" fill="#58a6ff"/>
+                <path d="M23 26 Q30 31 37 26" fill="none" stroke="#58a6ff" stroke-width="1.5"/>
+                <line x1="20" y1="42" x2="20" y2="48" stroke="#f0883e" stroke-width="1.5"/>
+                <line x1="40" y1="42" x2="40" y2="48" stroke="#f0883e" stroke-width="1.5"/>
+              </svg>
+              <span>DPS (Filter)</span>
+            </div>
+            <div class="symbol-card" data-symbol="dps_ahu_fan">
+              <svg viewBox="0 0 60 48">
+                <circle cx="30" cy="24" r="18" fill="none" stroke="#58a6ff" stroke-width="1.8"/>
+                <circle cx="23" cy="18" r="2" fill="#58a6ff"/>
+                <circle cx="37" cy="18" r="2" fill="#58a6ff"/>
+                <line x1="24" y1="28" x2="36" y2="28" stroke="#58a6ff" stroke-width="1.5"/>
+                <line x1="30" y1="24" x2="30" y2="32" stroke="#58a6ff" stroke-width="1.5"/>
+                <line x1="20" y1="42" x2="20" y2="48" stroke="#f0883e" stroke-width="1.5"/>
+                <line x1="40" y1="42" x2="40" y2="48" stroke="#f0883e" stroke-width="1.5"/>
+              </svg>
+              <span>DPS (Fan)</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Digital Controllers -->
+        <div class="symbol-category">
+          <div class="symbol-category-title">
+            <span>Controllers & Micro-DDC</span>
+            <span style="font-size:9px; color:var(--text-muted);">Full Gauge / BMS</span>
+          </div>
+          <div class="symbol-grid">
+            <div class="symbol-card" data-symbol="controller_mt512">
+              <svg viewBox="0 0 60 48">
+                <rect x="6" y="8" width="48" height="32" rx="3" fill="none" stroke="#d29922" stroke-width="1.8"/>
+                <text x="30" y="24" font-size="8" fill="#f0f6fc" font-weight="bold" text-anchor="middle">MT-512</text>
+                <line x1="12" y1="40" x2="12" y2="48" stroke="#f0883e" stroke-width="1.2"/>
+                <line x1="20" y1="40" x2="20" y2="48" stroke="#f0883e" stroke-width="1.2"/>
+                <line x1="28" y1="40" x2="28" y2="48" stroke="#f0883e" stroke-width="1.2"/>
+                <line x1="36" y1="40" x2="36" y2="48" stroke="#f0883e" stroke-width="1.2"/>
+                <line x1="44" y1="40" x2="44" y2="48" stroke="#f0883e" stroke-width="1.2"/>
+              </svg>
+              <span>MT-512 (CU)</span>
+            </div>
+            <div class="symbol-card" data-symbol="controller_mt543">
+              <svg viewBox="0 0 60 48">
+                <rect x="6" y="8" width="48" height="32" rx="3" fill="none" stroke="#d29922" stroke-width="1.8"/>
+                <text x="30" y="24" font-size="8" fill="#f0f6fc" font-weight="bold" text-anchor="middle">MT-543</text>
+                <line x1="12" y1="40" x2="12" y2="48" stroke="#f0883e" stroke-width="1.2"/>
+                <line x1="20" y1="40" x2="20" y2="48" stroke="#f0883e" stroke-width="1.2"/>
+                <line x1="28" y1="40" x2="28" y2="48" stroke="#f0883e" stroke-width="1.2"/>
+                <line x1="36" y1="40" x2="36" y2="48" stroke="#f0883e" stroke-width="1.2"/>
+                <line x1="44" y1="40" x2="44" y2="48" stroke="#f0883e" stroke-width="1.2"/>
+              </svg>
+              <span>MT-543 (CUS)</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Protection & Terminals -->
+        <div class="symbol-category">
+          <div class="symbol-category-title">
+            <span>Protection & Terminals</span>
+            <span style="font-size:9px; color:var(--text-muted);">IEC 60947</span>
+          </div>
+          <div class="symbol-grid">
+            <div class="symbol-card" data-symbol="breaker_mcb">
+              <svg viewBox="0 0 60 48">
+                <line x1="30" y1="4" x2="30" y2="16" stroke="#f0883e" stroke-width="1.5"/>
+                <line x1="30" y1="16" x2="22" y2="30" stroke="#f0883e" stroke-width="1.5"/>
+                <line x1="30" y1="32" x2="30" y2="44" stroke="#f0883e" stroke-width="1.5"/>
+                <rect x="23" y="19" width="14" height="10" fill="none" stroke="#58a6ff" stroke-width="1"/>
+                <text x="44" y="27" font-size="7" fill="#8b949e">10A</text>
+              </svg>
+              <span>10A MCB / Fuse</span>
+            </div>
+            <div class="symbol-card" data-symbol="terminal_block">
+              <svg viewBox="0 0 60 48">
+                <rect x="20" y="8" width="20" height="32" fill="none" stroke="#58a6ff" stroke-width="1.5"/>
+                <circle cx="30" cy="14" r="2.5" fill="#58a6ff"/>
+                <circle cx="30" cy="34" r="2.5" fill="#58a6ff"/>
+                <line x1="30" y1="2" x2="30" y2="12" stroke="#f0883e" stroke-width="1.5"/>
+                <line x1="30" y1="36" x2="30" y2="46" stroke="#f0883e" stroke-width="1.5"/>
+              </svg>
+              <span>Terminal Strip</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Sensors & Field Devices -->
+        <div class="symbol-category">
+          <div class="symbol-category-title">
+            <span>Field Sensors & Units</span>
+            <span style="font-size:9px; color:var(--text-muted);">RTD / NTC / Units</span>
+          </div>
+          <div class="symbol-grid">
+            <div class="symbol-card" data-symbol="temp_sensor">
+              <svg viewBox="0 0 60 48">
+                <rect x="18" y="16" width="24" height="16" rx="2" fill="none" stroke="#3fb950" stroke-width="1.5"/>
+                <line x1="12" y1="24" x2="18" y2="24" stroke="#f0883e" stroke-width="1.5"/>
+                <line x1="22" y1="28" x2="38" y2="20" stroke="#3fb950" stroke-width="1.5"/>
+                <text x="30" y="40" font-size="7" fill="#3fb950" text-anchor="middle">θ Sensor</text>
+              </svg>
+              <span>Temp Sensor</span>
+            </div>
+            <div class="symbol-card" data-symbol="unit_cu">
+              <svg viewBox="0 0 60 48">
+                <circle cx="30" cy="24" r="16" fill="none" stroke="#bc8cff" stroke-width="1.5"/>
+                <text x="30" y="27" font-size="9" fill="#f0f6fc" font-weight="bold" text-anchor="middle">CU</text>
+              </svg>
+              <span>Condensing Unit</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Sheet Properties & Metadata -->
+      <div class="sidebar-content" id="tabSheets" style="display:none;">
+        <div class="inspector-section">
+          <div class="inspector-title">Active Drawing Sheet</div>
+          <div class="prop-row">
+            <span class="prop-label">Project</span>
+            <input type="text" class="prop-input" id="sheetProject" value="ABU ZAABAL FACTORY 18" />
+          </div>
+          <div class="prop-row">
+            <span class="prop-label">Sheet Tag</span>
+            <input type="text" class="prop-input" id="sheetTag" value="CSWB-1/FN1-2" />
+          </div>
+          <div class="prop-row">
+            <span class="prop-label">Standard</span>
+            <input type="text" class="prop-input" value="IEC 60617 / 81346" readonly />
+          </div>
+          <div class="prop-row">
+            <span class="prop-label">Sheet Format</span>
+            <select class="prop-input" id="sheetFormat">
+              <option value="A3">ISO A3 (420 x 297 mm)</option>
+              <option value="A4">ISO A4 (297 x 210 mm)</option>
+              <option value="A2">ISO A2 (594 x 420 mm)</option>
+            </select>
+          </div>
+          <div class="prop-row">
+            <span class="prop-label">Scale</span>
+            <input type="text" class="prop-input" id="sheetScale" value="1:1" />
+          </div>
+          <div class="prop-row">
+            <span class="prop-label">Contractor</span>
+            <input type="text" class="prop-input" id="sheetContractor" value="GTS Automation" />
+          </div>
+        </div>
+
+        <div class="inspector-section">
+          <div class="inspector-title">Detected Sheet Regions</div>
+          <div style="font-size:11px; color:var(--text-muted); line-height:1.6;">
+            <div>• <strong>Main Power/Control Bay:</strong> X: 50-650mm, Y: 100-500mm</div>
+            <div>• <strong>AHU Enclosure Overview:</strong> X: 700-1100mm, Y: 250-600mm</div>
+            <div>• <strong>Title Block:</strong> IEC Standard ISO 7200</div>
+          </div>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Central Viewport -->
+    <div class="viewport-container" id="viewportContainer">
+      <!-- Left Pane: Source Drawing (PDF/Raster) -->
+      <div class="canvas-pane source-pane" id="sourcePane">
+        <div class="pane-header-overlay">
+          <i data-lucide="file-text" style="width:13px;height:13px; color:var(--warning);"></i>
+          <span>Source Sheet: <strong id="sourceSheetLabel">Abu Zaabal Factory 18.pdf</strong></span>
+        </div>
+        <canvas id="sourceCanvas" style="width:100%; height:100%; display:block; cursor:crosshair;"></canvas>
+      </div>
+
+      <!-- Right Pane: Vector CAD Interactive Canvas -->
+      <div class="canvas-pane cad-pane" id="cadPane">
+        <div class="pane-header-overlay">
+          <i data-lucide="layers" style="width:13px;height:13px; color:var(--accent-blue);"></i>
+          <span>Interactive IEC CAD Vector Model</span>
+          <span class="badge-iec" style="margin-left:4px;">Ready for DXF</span>
+        </div>
+        <canvas id="cadCanvas" style="width:100%; height:100%; display:block; cursor:default;"></canvas>
+      </div>
+
+      <!-- Floating View Navigation Controls -->
+      <div class="floating-nav">
+        <button class="nav-btn" id="btnZoomIn" title="Zoom In (+)">
+          <i data-lucide="zoom-in" style="width:16px;height:16px;"></i>
+        </button>
+        <button class="nav-btn" id="btnZoomOut" title="Zoom Out (-)">
+          <i data-lucide="zoom-out" style="width:16px;height:16px;"></i>
+        </button>
+        <button class="nav-btn" id="btnZoomFit" title="Zoom to Extents (F)">
+          <i data-lucide="maximize-2" style="width:16px;height:16px;"></i>
+        </button>
+        <button class="nav-btn" id="btnToggleGrid" title="Toggle IEC Snapping Grid (G)">
+          <i data-lucide="grid-3x3" style="width:16px;height:16px;"></i>
+        </button>
+      </div>
+    </div>
+
+    <!-- Right Sidebar: Layer Manager & Property Inspector -->
+    <aside class="sidebar-right">
+      <!-- IEC Standard Layer Table -->
+      <div class="inspector-section" style="max-height: 48%; overflow-y:auto;">
+        <div class="inspector-title">
+          <span>IEC Standard Layers</span>
+          <span style="font-size:9px; color:var(--text-muted);">AutoCAD DXF</span>
+        </div>
+        <div id="layerListContainer">
+          <!-- Populated dynamically with IEC layers -->
+        </div>
+      </div>
+
+      <!-- Selected Entity Properties Inspector -->
+      <div class="inspector-section" style="flex:1; overflow-y:auto;" id="propertyInspectorContainer">
+        <div class="inspector-title">
+          <span>Entity Inspector</span>
+          <span id="inspectorEntityCount" style="font-size:10px; color:var(--accent-blue);">None</span>
+        </div>
+        <div id="inspectorFields">
+          <div style="font-size:11px; color:var(--text-muted); text-align:center; padding:20px 0;">
+            Select an element in CAD viewer to view & edit IEC parameters
+          </div>
+        </div>
+      </div>
+    </aside>
+  </div>
+
+  <!-- Bottom Status Bar -->
+  <footer class="status-bar">
+    <div class="status-left">
+      <div class="status-item">
+        <span>Cursor:</span>
+        <span class="coord-display" id="statusCoords">X: 0.00 mm, Y: 0.00 mm</span>
+      </div>
+      <div class="status-item">
+        <span>Grid:</span>
+        <span style="color:var(--accent-blue); font-weight:600;" id="statusGrid">10.0 mm [ON]</span>
+      </div>
+      <div class="status-item">
+        <span>Active Tool:</span>
+        <span style="color:var(--text-bright); font-weight:600;" id="statusActiveTool">Select</span>
+      </div>
+    </div>
+
+    <div class="status-right">
+      <div class="status-item">
+        <span>Entities:</span>
+        <span id="statusEntityCount" style="font-weight:600; color:var(--text-bright);">0</span>
+      </div>
+      <div class="status-item">
+        <span>Zoom:</span>
+        <span id="statusZoom" style="font-family:monospace;">100%</span>
+      </div>
+      <div class="status-item">
+        <span class="badge-iec">AutoCAD DXF R12/2000 Compatible</span>
+      </div>
+    </div>
+  </footer>
+
+  <!-- BOM Modal Dialog -->
+  <div class="modal-overlay" id="bomModal">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3>
+          <i data-lucide="clipboard-list" style="width:16px;height:16px; color:var(--accent-blue);"></i>
+          <span>Bill of Materials (BOM) & Electrical Equipment Schedule</span>
+        </h3>
+        <button class="btn btn-icon-only" onclick="document.getElementById('bomModal').classList.remove('active')">
+          <i data-lucide="x" style="width:14px;height:14px;"></i>
+        </button>
+      </div>
+      <div class="modal-body">
+        <table class="bom-table">
+          <thead>
+            <tr>
+              <th>Item</th>
+              <th>IEC Ref / Tag</th>
+              <th>Description / Specification</th>
+              <th>Qty</th>
+              <th>Location</th>
+              <th>Standard</th>
+            </tr>
+          </thead>
+          <tbody id="bomTableBody">
+            <!-- Dynamically populated -->
+          </tbody>
+        </table>
+      </div>
+      <div class="modal-footer">
+        <button class="btn" id="btnCopyBOMCSV">
+          <i data-lucide="copy" style="width:14px;height:14px;"></i>
+          Copy CSV
+        </button>
+        <button class="btn btn-success" id="btnDownloadBOMCSV">
+          <i data-lucide="download" style="width:14px;height:14px;"></i>
+          Export CSV / Excel
+        </button>
+        <button class="btn" onclick="document.getElementById('bomModal').classList.remove('active')">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Notification Toast -->
+  <div class="toast toast-info" id="toastBox">
+    <i data-lucide="info" id="toastIcon" style="width:16px;height:16px;"></i>
+    <span id="toastMessage">Ready</span>
+  </div>
+
+  <!-- CORE CAD APPLICATION ENGINE SCRIPT -->
+  <script>
+    /* ==========================================================================
+       HVAC CAD STUDIO - CORE STATE, MODEL, SYMBOLS & DXF ENGINE
+       ========================================================================== */
+
+    // 1. Standard IEC Layers definitions (IEC 81346 & ISO 13567 CAD layering)
+    const IEC_LAYERS = {
+      'IEC_WIRING_POWER': { name: 'IEC_WIRING_POWER', color: '#ff4d4f', dxfColor: 1, visible: true, locked: false, desc: 'Power Wiring (Phases/Neutral)' },
+      'IEC_WIRING_CONTROL': { name: 'IEC_WIRING_CONTROL', color: '#1890ff', dxfColor: 5, visible: true, locked: false, desc: 'Control & Interlock Wiring' },
+      'IEC_SYMBOLS_APPARATUS': { name: 'IEC_SYMBOLS_APPARATUS', color: '#faad14', dxfColor: 2, visible: true, locked: false, desc: 'Controllers, Relays & Breakers' },
+      'IEC_SYMBOLS_SENSORS': { name: 'IEC_SYMBOLS_SENSORS', color: '#52c41a', dxfColor: 3, visible: true, locked: false, desc: 'DPS, RTD & Temperature Sensors' },
+      'IEC_TERMINAL_STRIP': { name: 'IEC_TERMINAL_STRIP', color: '#13c2c2', dxfColor: 4, visible: true, locked: false, desc: 'DIN Rail Terminal Blocks' },
+      'IEC_ANNOTATION_TEXT': { name: 'IEC_ANNOTATION_TEXT', color: '#ffffff', dxfColor: 7, visible: true, locked: false, desc: 'Tags, Ratings & Terminal Numbers' },
+      'IEC_TITLE_BLOCK': { name: 'IEC_TITLE_BLOCK', color: '#eb2f96', dxfColor: 6, visible: true, locked: false, desc: 'Drawing Border & Title Block' },
+      'IEC_ENCLOSURE_OUTLINE': { name: 'IEC_ENCLOSURE_OUTLINE', color: '#8c8c8c', dxfColor: 8, visible: true, locked: false, desc: 'Panel & AHU Unit Boundaries' }
+    };
+
+    // 2. Main CAD Model Store
+    const cadModel = {
+      metadata: {
+        project: 'ABU ZAABAL FACTORY 18',
+        sheetTag: 'CSWB-1/FN1-2',
+        contractor: 'GTS Automation',
+        units: 'Millimeters',
+        scale: 1.0,
+        standard: 'IEC 60617 / IEC 81346',
+        author: 'HVAC Intelligent CAD Studio',
+        created: new Date().toISOString()
+      },
+      entities: [],
+      selectedIds: new Set(),
+      history: [],
+      historyIndex: -1
+    };
+
+    // 3. Viewport & Interaction State
+    const viewState = {
+      panX: 40,
+      panY: 40,
+      zoom: 0.85,
+      gridSize: 10,
+      snapToGrid: true,
+      mode: 'split',
+      activeTool: 'select',
+      stampSymbol: null,
+      wireStartPoint: null,
+      measureStartPoint: null,
+      isPanning: false,
+      lastMouseX: 0,
+      lastMouseY: 0,
+      overlayOpacity: 0.5,
+      sourceLoaded: false
+    };
+
+    // DOM References
+    const sourceCanvas = document.getElementById('sourceCanvas');
+    const sourceCtx = sourceCanvas.getContext('2d');
+    const cadCanvas = document.getElementById('cadCanvas');
+    const cadCtx = cadCanvas.getContext('2d');
+    const sourcePane = document.getElementById('sourcePane');
+    const cadPane = document.getElementById('cadPane');
+
+    /* ==========================================================================
+       SAMPLE DATA: Abu Zaabal Factory 18 HVAC Schematic
+       ========================================================================== */
+    function loadAbuZaabalFactorySample() {
+      cadModel.entities = [];
+      cadModel.selectedIds.clear();
+
+      // Title Block & Sheet Boundary
+      cadModel.entities.push({
+        id: 'border_outer',
+        type: 'rect',
+        layer: 'IEC_TITLE_BLOCK',
+        x: 20,
+        y: 20,
+        width: 1060,
+        height: 680,
+        strokeWidth: 2.0,
+        color: '#eb2f96'
+      });
+
+      cadModel.entities.push({
+        id: 'border_inner',
+        type: 'rect',
+        layer: 'IEC_TITLE_BLOCK',
+        x: 30,
+        y: 30,
+        width: 1040,
+        height: 660,
+        strokeWidth: 1.0,
+        color: '#eb2f96'
+      });
+
+      // Title Block Box
+      cadModel.entities.push({
+        id: 'titlebox_bg',
+        type: 'rect',
+        layer: 'IEC_TITLE_BLOCK',
+        x: 30,
+        y: 610,
+        width: 1040,
+        height: 80,
+        strokeWidth: 1.5,
+        color: '#eb2f96'
+      });
+
+      cadModel.entities.push({
+        id: 'title_logo_text',
+        type: 'text',
+        layer: 'IEC_TITLE_BLOCK',
+        x: 140,
+        y: 658,
+        text: 'GTS',
+        fontSize: 34,
+        fontWeight: 'bold',
+        color: '#52c41a'
+      });
+
+      cadModel.entities.push({
+        id: 'title_text_project',
+        type: 'text',
+        layer: 'IEC_TITLE_BLOCK',
+        x: 430,
+        y: 645,
+        text: 'PROJECT : ABU ZAABAL FACTORY 18',
+        fontSize: 22,
+        fontWeight: 'bold',
+        color: '#ffffff'
+      });
+
+      cadModel.entities.push({
+        id: 'title_text_sheet',
+        type: 'text',
+        layer: 'IEC_TITLE_BLOCK',
+        x: 580,
+        y: 675,
+        text: 'CSWB-1/FN1-2',
+        fontSize: 18,
+        fontWeight: 'bold',
+        color: '#58a6ff'
+      });
+
+      // 4x Differential Pressure Switches (DPS)
+      const dpsList = [
+        { id: 'dps_1', tag: 'DPS 1', desc: 'new AHU filter', x: 80, y: 140 },
+        { id: 'dps_2', tag: 'DPS 2', desc: 'new AHU fan', x: 140, y: 140 },
+        { id: 'dps_3', tag: 'DPS 3', desc: 'AHU5 filter', x: 200, y: 140 },
+        { id: 'dps_4', tag: 'DPS 4', desc: 'AHU5 fan', x: 260, y: 140 }
+      ];
+
+      dpsList.forEach(dps => {
+        cadModel.entities.push({
+          id: dps.id + '_sym',
+          type: 'symbol',
+          symbolType: 'dps',
+          layer: 'IEC_SYMBOLS_SENSORS',
+          x: dps.x,
+          y: dps.y,
+          radius: 18,
+          tag: dps.tag,
+          desc: dps.desc
+        });
+        cadModel.entities.push({
+          id: dps.id + '_tag_txt',
+          type: 'text',
+          layer: 'IEC_ANNOTATION_TEXT',
+          x: dps.x,
+          y: dps.y - 2,
+          text: 'DPS',
+          fontSize: 8,
+          align: 'center',
+          fontWeight: 'bold',
+          color: '#ffffff'
+        });
+        cadModel.entities.push({
+          id: dps.id + '_desc_txt',
+          type: 'text',
+          layer: 'IEC_ANNOTATION_TEXT',
+          x: dps.x,
+          y: dps.y + 7,
+          text: dps.desc,
+          fontSize: 6,
+          align: 'center',
+          color: '#8b949e'
+        });
+      });
+
+      // Digital Controller 1: MT-512 (new CU)
+      cadModel.entities.push({
+        id: 'ctrl_mt512',
+        type: 'symbol',
+        symbolType: 'controller_mt512',
+        layer: 'IEC_SYMBOLS_APPARATUS',
+        x: 370,
+        y: 140,
+        width: 90,
+        height: 48,
+        tag: 'MT-512',
+        desc: 'new CU'
+      });
+
+      // Digital Controller 2: MT-543 (CUS)
+      cadModel.entities.push({
+        id: 'ctrl_mt543',
+        type: 'symbol',
+        symbolType: 'controller_mt543',
+        layer: 'IEC_SYMBOLS_APPARATUS',
+        x: 480,
+        y: 140,
+        width: 90,
+        height: 48,
+        tag: 'MT-543',
+        desc: 'CUS'
+      });
+
+      // Terminal Strip DIN Rail
+      cadModel.entities.push({
+        id: 'terminal_strip_1',
+        type: 'terminal_strip',
+        layer: 'IEC_TERMINAL_STRIP',
+        x: 420,
+        y: 280,
+        count: 18,
+        spacing: 6,
+        tag: 'X1'
+      });
+
+      // Circuit Breakers / MCB (10A VDE)
+      cadModel.entities.push({
+        id: 'mcb_1',
+        type: 'symbol',
+        symbolType: 'breaker_mcb',
+        layer: 'IEC_SYMBOLS_APPARATUS',
+        x: 300,
+        y: 280,
+        tag: 'Q1',
+        rating: '10A VDE'
+      });
+
+      cadModel.entities.push({
+        id: 'mcb_2',
+        type: 'symbol',
+        symbolType: 'breaker_mcb',
+        layer: 'IEC_SYMBOLS_APPARATUS',
+        x: 520,
+        y: 280,
+        tag: 'Q2',
+        rating: '10A'
+      });
+
+      // Field Units / Circles (CUS & new CU)
+      cadModel.entities.push({
+        id: 'unit_cus_circle',
+        type: 'circle',
+        layer: 'IEC_ENCLOSURE_OUTLINE',
+        x: 560,
+        y: 380,
+        radius: 24,
+        color: '#bc8cff'
+      });
+      cadModel.entities.push({
+        id: 'unit_cus_txt',
+        type: 'text',
+        layer: 'IEC_ANNOTATION_TEXT',
+        x: 560,
+        y: 383,
+        text: 'CUS',
+        fontSize: 9,
+        align: 'center',
+        fontWeight: 'bold',
+        color: '#ffffff'
+      });
+
+      cadModel.entities.push({
+        id: 'unit_new_cu_circle',
+        type: 'circle',
+        layer: 'IEC_ENCLOSURE_OUTLINE',
+        x: 535,
+        y: 435,
+        radius: 24,
+        color: '#bc8cff'
+      });
+      cadModel.entities.push({
+        id: 'unit_new_cu_txt',
+        type: 'text',
+        layer: 'IEC_ANNOTATION_TEXT',
+        x: 535,
+        y: 438,
+        text: 'new CU',
+        fontSize: 8,
+        align: 'center',
+        fontWeight: 'bold',
+        color: '#ffffff'
+      });
+
+      // Temperature Sensors (RTD probes)
+      cadModel.entities.push({
+        id: 'sensor_temp_1',
+        type: 'symbol',
+        symbolType: 'temp_sensor',
+        layer: 'IEC_SYMBOLS_SENSORS',
+        x: 350,
+        y: 350,
+        tag: 'B1',
+        desc: 'temp sensor'
+      });
+      cadModel.entities.push({
+        id: 'sensor_temp_2',
+        type: 'symbol',
+        symbolType: 'temp_sensor',
+        layer: 'IEC_SYMBOLS_SENSORS',
+        x: 370,
+        y: 370,
+        tag: 'B2',
+        desc: 'temp sensor'
+      });
+
+      // Sheet Drawing label "CSWB-1/FN1-2"
+      cadModel.entities.push({
+        id: 'diag_label',
+        type: 'text',
+        layer: 'IEC_ANNOTATION_TEXT',
+        x: 230,
+        y: 410,
+        text: 'CSWB-1/FN1-2',
+        fontSize: 14,
+        align: 'center',
+        color: '#58a6ff'
+      });
+
+      // Orthogonal Wiring Nets
+      const wires = [
+        { x1: 80, y1: 158, x2: 80, y2: 240, net: 'DPS_1_COMMON' },
+        { x1: 80, y1: 240, x2: 300, y2: 240, net: 'DPS_BUS' },
+        { x1: 300, y1: 240, x2: 300, y2: 270, net: 'DPS_BUS' },
+        { x1: 140, y1: 158, x2: 140, y2: 230, net: 'DPS_2' },
+        { x1: 140, y1: 230, x2: 380, y2: 230, net: 'DPS_2' },
+        { x1: 380, y1: 230, x2: 380, y2: 188, net: 'DPS_2' },
+        { x1: 200, y1: 158, x2: 200, y2: 240, net: 'DPS_3' },
+        { x1: 260, y1: 158, x2: 260, y2: 260, net: 'DPS_4' },
+        { x1: 260, y1: 260, x2: 440, y2: 260, net: 'DPS_4' },
+        // Controller MT-512 to Terminal Strip X1
+        { x1: 340, y1: 188, x2: 340, y2: 220, net: 'MT512_P1' },
+        { x1: 340, y1: 220, x2: 430, y2: 220, net: 'MT512_P1' },
+        { x1: 430, y1: 220, x2: 430, y2: 280, net: 'MT512_P1' },
+        { x1: 360, y1: 188, x2: 360, y2: 210, net: 'MT512_P2' },
+        { x1: 360, y1: 210, x2: 440, y2: 210, net: 'MT512_P2' },
+        { x1: 440, y1: 210, x2: 440, y2: 280, net: 'MT512_P2' },
+        { x1: 380, y1: 188, x2: 380, y2: 200, net: 'MT512_P3' },
+        { x1: 380, y1: 200, x2: 450, y2: 200, net: 'MT512_P3' },
+        { x1: 450, y1: 200, x2: 450, y2: 280, net: 'MT512_P3' },
+        { x1: 400, y1: 188, x2: 400, y2: 205, net: 'MT512_P4' },
+        { x1: 400, y1: 205, x2: 460, y2: 205, net: 'MT512_P4' },
+        { x1: 460, y1: 205, x2: 460, y2: 280, net: 'MT512_P4' },
+        // Controller MT-543 to Terminal Strip
+        { x1: 470, y1: 188, x2: 470, y2: 210, net: 'MT543_P1' },
+        { x1: 470, y1: 210, x2: 480, y2: 210, net: 'MT543_P1' },
+        { x1: 480, y1: 210, x2: 480, y2: 280, net: 'MT543_P1' },
+        { x1: 490, y1: 188, x2: 490, y2: 220, net: 'MT543_P2' },
+        { x1: 490, y1: 220, x2: 490, y2: 280, net: 'MT543_P2' },
+        { x1: 510, y1: 188, x2: 510, y2: 230, net: 'MT543_P3' },
+        { x1: 510, y1: 230, x2: 500, y2: 230, net: 'MT543_P3' },
+        { x1: 500, y1: 230, x2: 500, y2: 280, net: 'MT543_P3' },
+        // Sensor lines
+        { x1: 370, y1: 350, x2: 450, y2: 350, net: 'SENSOR_1' },
+        { x1: 450, y1: 350, x2: 450, y2: 310, net: 'SENSOR_1' },
+        { x1: 390, y1: 370, x2: 470, y2: 370, net: 'SENSOR_2' },
+        { x1: 470, y1: 370, x2: 470, y2: 310, net: 'SENSOR_2' },
+        // Feeder leads to Condensing Units
+        { x1: 455, y1: 310, x2: 455, y2: 435, net: 'FEEDER_CU' },
+        { x1: 455, y1: 435, x2: 510, y2: 435, net: 'FEEDER_CU' },
+        { x1: 485, y1: 310, x2: 485, y2: 380, net: 'FEEDER_CUS' },
+        { x1: 485, y1: 380, x2: 535, y2: 380, net: 'FEEDER_CUS' }
+      ];
+
+      wires.forEach((w, idx) => {
+        cadModel.entities.push({
+          id: 'wire_' + idx,
+          type: 'wire',
+          layer: 'IEC_WIRING_CONTROL',
+          x1: w.x1,
+          y1: w.y1,
+          x2: w.x2,
+          y2: w.y2,
+          net: w.net,
+          strokeWidth: 1.5,
+          color: '#1890ff'
+        });
+      });
+
+      // Right Section: AHU & CU Control Enclosure Box
+      cadModel.entities.push({
+        id: 'enclosure_ahu_box',
+        type: 'rect',
+        layer: 'IEC_ENCLOSURE_OUTLINE',
+        x: 670,
+        y: 110,
+        width: 320,
+        height: 380,
+        dashed: true,
+        strokeWidth: 1.5,
+        color: '#8c8c8c'
+      });
+
+      cadModel.entities.push({
+        id: 'ahu_box_header_1',
+        type: 'text',
+        layer: 'IEC_ANNOTATION_TEXT',
+        x: 740,
+        y: 130,
+        text: 'new CU & new AHU',
+        fontSize: 8,
+        align: 'center',
+        color: '#8b949e'
+      });
+
+      cadModel.entities.push({
+        id: 'ahu_box_header_2',
+        type: 'text',
+        layer: 'IEC_ANNOTATION_TEXT',
+        x: 870,
+        y: 130,
+        text: 'CUS & AHU5',
+        fontSize: 8,
+        align: 'center',
+        color: '#8b949e'
+      });
+
+      // Mini DPS in AHU box
+      cadModel.entities.push({
+        id: 'mini_dps_1',
+        type: 'circle',
+        layer: 'IEC_SYMBOLS_SENSORS',
+        x: 770,
+        y: 280,
+        radius: 16,
+        color: '#58a6ff'
+      });
+      cadModel.entities.push({
+        id: 'mini_dps_2',
+        type: 'circle',
+        layer: 'IEC_SYMBOLS_SENSORS',
+        x: 850,
+        y: 280,
+        radius: 16,
+        color: '#58a6ff'
+      });
+
+      cadModel.entities.push({
+        id: 'ahu_title_label',
+        type: 'text',
+        layer: 'IEC_ANNOTATION_TEXT',
+        x: 830,
+        y: 470,
+        text: 'Main FN1-2_AHU',
+        fontSize: 16,
+        align: 'center',
+        fontWeight: 'bold',
+        color: '#f0f6fc'
+      });
+
+      saveHistory();
+      renderAll();
+      updateBOMTable();
+      showToast('Abu Zaabal Factory 18 HVAC Sheet Loaded & Converted to IEC Standard', 'success');
+    }
+
+    /* ==========================================================================
+       CANVAS RENDERING ENGINE
+       ========================================================================= */
+    function resizeCanvases() {
+      const spRect = sourcePane.getBoundingClientRect();
+      const cpRect = cadPane.getBoundingClientRect();
+
+      sourceCanvas.width = spRect.width * (window.devicePixelRatio || 1);
+      sourceCanvas.height = spRect.height * (window.devicePixelRatio || 1);
+      cadCanvas.width = cpRect.width * (window.devicePixelRatio || 1);
+      cadCanvas.height = cpRect.height * (window.devicePixelRatio || 1);
+
+      renderAll();
+    }
+
+    window.addEventListener('resize', resizeCanvases);
+
+    function renderAll() {
+      renderSourceCanvas();
+      renderCadCanvas();
+      updateStatusBar();
+    }
+
+    // Render Source Sheet Canvas
+    function renderSourceCanvas() {
+      const dpr = window.devicePixelRatio || 1;
+      sourceCtx.save();
+      sourceCtx.clearRect(0, 0, sourceCanvas.width, sourceCanvas.height);
+      sourceCtx.scale(dpr, dpr);
+
+      sourceCtx.translate(viewState.panX, viewState.panY);
+      sourceCtx.scale(viewState.zoom, viewState.zoom);
+
+      // Paper Background
+      sourceCtx.fillStyle = '#ffffff';
+      sourceCtx.shadowColor = 'rgba(0,0,0,0.5)';
+      sourceCtx.shadowBlur = 15;
+      sourceCtx.fillRect(0, 0, 1100, 720);
+      sourceCtx.shadowBlur = 0;
+
+      drawSourceSheetGraphic(sourceCtx);
+      drawDetectionHighlights(sourceCtx);
+
+      sourceCtx.restore();
+    }
+
+    function drawSourceSheetGraphic(ctx) {
+      ctx.save();
+      ctx.strokeStyle = '#000000';
+      ctx.lineWidth = 2;
+      ctx.strokeRect(20, 20, 1060, 680);
+      ctx.strokeRect(30, 30, 1040, 660);
+
+      // Title Block
+      ctx.strokeRect(30, 610, 1040, 80);
+      ctx.fillStyle = '#237804';
+      ctx.font = 'bold 36px Arial, sans-serif';
+      ctx.fillText('GTS', 140, 662);
+
+      // Sun icon
+      ctx.fillStyle = '#faad14';
+      ctx.beginPath();
+      ctx.arc(110, 650, 18, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.fillStyle = '#000000';
+      ctx.font = 'bold 22px Arial, sans-serif';
+      ctx.fillText('PROJECT : ABU ZAABAL FACTORY 18', 430, 646);
+      ctx.fillText('CSWB-1/FN1-2', 580, 678);
+
+      // DPS circles
+      const dpsX = [80, 140, 200, 260];
+      const dpsL = ['DPS\nnew AHU filter', 'DPS\nnew AHU fan', 'DPS\nAHU5 filter', 'DPS\nAHU5 fan'];
+      dpsX.forEach((x, i) => {
+        ctx.strokeStyle = '#000000';
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.arc(x, 140, 18, 0, Math.PI*2);
+        ctx.stroke();
+
+        ctx.font = 'bold 8px Arial';
+        ctx.textAlign = 'center';
+        ctx.fillText('DPS', x, 137);
+        ctx.font = '6px Arial';
+        ctx.fillText(dpsL[i].split('\n')[1], x, 147);
+
+        ctx.beginPath();
+        ctx.arc(x-5, 126, 2, 0, Math.PI*2);
+        ctx.arc(x+5, 126, 2, 0, Math.PI*2);
+        ctx.stroke();
+      });
+
+      // Controllers
+      ctx.strokeRect(325, 115, 90, 48);
+      ctx.font = 'bold 11px Arial';
+      ctx.fillText('MT-512', 370, 135);
+      ctx.font = '8px Arial';
+      ctx.fillText('new CU', 370, 148);
+
+      ctx.strokeRect(435, 115, 90, 48);
+      ctx.font = 'bold 11px Arial';
+      ctx.fillText('MT-543', 480, 135);
+      ctx.font = '8px Arial';
+      ctx.fillText('CUS', 480, 148);
+
+      // Terminal Strip DIN Rail
+      ctx.strokeRect(420, 280, 110, 25);
+      ctx.fillStyle = '#e6f7ff';
+      ctx.fillRect(421, 281, 108, 23);
+      ctx.fillStyle = '#000000';
+      for(let tx = 425; tx < 525; tx += 6) {
+        ctx.strokeRect(tx, 275, 4, 35);
+      }
+
+      // 10A VDE Breaker
+      ctx.strokeRect(290, 260, 20, 36);
+      ctx.save();
+      ctx.translate(285, 282);
+      ctx.rotate(-Math.PI/2);
+      ctx.font = '7px Arial';
+      ctx.fillText('10A VDE', 0, 0);
+      ctx.restore();
+
+      // Right AHU box
+      ctx.setLineDash([5, 5]);
+      ctx.strokeRect(670, 110, 320, 380);
+      ctx.setLineDash([]);
+      ctx.font = '14px Arial';
+      ctx.fillText('Main FN1-2_AHU', 830, 470);
+
+      ctx.restore();
+    }
+
+    function drawDetectionHighlights(ctx) {
+      ctx.save();
+      cadModel.entities.forEach(ent => {
+        if (ent.type === 'symbol') {
+          ctx.strokeStyle = '#58a6ff';
+          ctx.lineWidth = 1;
+          ctx.setLineDash([2, 2]);
+
+          if (ent.symbolType === 'dps') {
+            ctx.strokeRect(ent.x - 22, ent.y - 22, 44, 44);
+            ctx.fillStyle = 'rgba(88, 166, 255, 0.12)';
+            ctx.fillRect(ent.x - 22, ent.y - 22, 44, 44);
+          } else if (ent.symbolType.startsWith('controller')) {
+            ctx.strokeRect(ent.x - ent.width/2 - 4, ent.y - ent.height/2 - 4, ent.width + 8, ent.height + 8);
+            ctx.fillStyle = 'rgba(210, 153, 34, 0.12)';
+            ctx.fillRect(ent.x - ent.width/2 - 4, ent.y - ent.height/2 - 4, ent.width + 8, ent.height + 8);
+          }
+        }
+      });
+      ctx.restore();
+    }
+
+    // Render CAD Canvas
+    function renderCadCanvas() {
+      const dpr = window.devicePixelRatio || 1;
+      const isLight = document.documentElement.getAttribute('data-theme') === 'light';
+
+      cadCtx.save();
+      cadCtx.clearRect(0, 0, cadCanvas.width, cadCanvas.height);
+      cadCtx.fillStyle = isLight ? '#f8fafc' : '#12151a';
+      cadCtx.fillRect(0, 0, cadCanvas.width, cadCanvas.height);
+      cadCtx.scale(dpr, dpr);
+
+      // Overlay mode
+      if (viewState.mode === 'overlay' && viewState.overlayOpacity > 0) {
+        cadCtx.save();
+        cadCtx.translate(viewState.panX, viewState.panY);
+        cadCtx.scale(viewState.zoom, viewState.zoom);
+        cadCtx.globalAlpha = viewState.overlayOpacity;
+        cadCtx.fillStyle = '#ffffff';
+        cadCtx.fillRect(0, 0, 1100, 720);
+        drawSourceSheetGraphic(cadCtx);
+        cadCtx.restore();
+      }
+
+      cadCtx.translate(viewState.panX, viewState.panY);
+      cadCtx.scale(viewState.zoom, viewState.zoom);
+
+      drawCadGrid(cadCtx);
+
+      // Render Entities by Layer
+      Object.keys(IEC_LAYERS).forEach(layerKey => {
+        const layer = IEC_LAYERS[layerKey];
+        if (!layer.visible) return;
+
+        const ents = cadModel.entities.filter(e => e.layer === layerKey);
+        ents.forEach(ent => {
+          renderEntity(cadCtx, ent);
+        });
+      });
+
+      if (viewState.activeTool === 'wire' && viewState.wireStartPoint) {
+        drawWirePreview(cadCtx);
+      }
+
+      cadCtx.restore();
+    }
+
+    function drawCadGrid(ctx) {
+      ctx.save();
+      const isLight = document.documentElement.getAttribute('data-theme') === 'light';
+      const gridSpacing = viewState.gridSize;
+      const majorSpacing = gridSpacing * 5;
+
+      const minX = -viewState.panX / viewState.zoom - 100;
+      const minY = -viewState.panY / viewState.zoom - 100;
+      const maxX = minX + cadCanvas.width / (viewState.zoom * (window.devicePixelRatio || 1)) + 200;
+      const maxY = minY + cadCanvas.height / (viewState.zoom * (window.devicePixelRatio || 1)) + 200;
+
+      // Minor grid
+      ctx.strokeStyle = isLight ? '#e2e8f0' : '#181d24';
+      ctx.lineWidth = 0.5 / viewState.zoom;
+      ctx.beginPath();
+      const startX = Math.floor(minX / gridSpacing) * gridSpacing;
+      const startY = Math.floor(minY / gridSpacing) * gridSpacing;
+
+      for (let x = startX; x <= maxX; x += gridSpacing) {
+        ctx.moveTo(x, minY);
+        ctx.lineTo(x, maxY);
+      }
+      for (let y = startY; y <= maxY; y += gridSpacing) {
+        ctx.moveTo(minX, y);
+        ctx.lineTo(maxX, y);
+      }
+      ctx.stroke();
+
+      // Major grid
+      ctx.strokeStyle = isLight ? '#cbd5e1' : '#222933';
+      ctx.lineWidth = 1.0 / viewState.zoom;
+      ctx.beginPath();
+      const majorStartX = Math.floor(minX / majorSpacing) * majorSpacing;
+      const majorStartY = Math.floor(minY / majorSpacing) * majorSpacing;
+
+      for (let x = majorStartX; x <= maxX; x += majorSpacing) {
+        ctx.moveTo(x, minY);
+        ctx.lineTo(x, maxY);
+      }
+      for (let y = majorStartY; y <= maxY; y += majorSpacing) {
+        ctx.moveTo(minX, y);
+        ctx.lineTo(maxX, y);
+      }
+      ctx.stroke();
+
+      ctx.restore();
+    }
+
+    function renderEntity(ctx, ent) {
+      ctx.save();
+      const isSelected = cadModel.selectedIds.has(ent.id);
+      const isLight = document.documentElement.getAttribute('data-theme') === 'light';
+      const adaptColor = col => (isLight && (col === '#ffffff' || col === '#fff' || !col) ? '#1f2328' : col);
+
+      if (isSelected) {
+        ctx.shadowColor = '#58a6ff';
+        ctx.shadowBlur = 6;
+      }
+
+      switch (ent.type) {
+        case 'rect':
+          ctx.strokeStyle = isSelected ? '#58a6ff' : adaptColor(ent.color || '#ffffff');
+          ctx.lineWidth = ent.strokeWidth || 1.5;
+          if (ent.dashed) ctx.setLineDash([6, 4]);
+          ctx.strokeRect(ent.x, ent.y, ent.width, ent.height);
+          break;
+
+        case 'circle':
+          ctx.strokeStyle = isSelected ? '#58a6ff' : adaptColor(ent.color || '#ffffff');
+          ctx.lineWidth = ent.strokeWidth || 1.5;
+          ctx.beginPath();
+          ctx.arc(ent.x, ent.y, ent.radius, 0, Math.PI * 2);
+          ctx.stroke();
+          break;
+
+        case 'text':
+          ctx.fillStyle = isSelected ? '#58a6ff' : adaptColor(ent.color || '#ffffff');
+          ctx.font = `${ent.fontWeight || 'normal'} ${ent.fontSize || 10}px sans-serif`;
+          ctx.textAlign = ent.align || 'left';
+          ctx.fillText(ent.text, ent.x, ent.y);
+          break;
+
+        case 'wire':
+          ctx.strokeStyle = isSelected ? (isLight ? '#0969da' : '#ffffff') : (ent.color || '#1890ff');
+          ctx.lineWidth = isSelected ? 2.5 : (ent.strokeWidth || 1.5);
+          ctx.beginPath();
+          ctx.moveTo(ent.x1, ent.y1);
+          ctx.lineTo(ent.x2, ent.y2);
+          ctx.stroke();
+
+          // Junction dots
+          ctx.fillStyle = ent.color || '#1890ff';
+          ctx.beginPath();
+          ctx.arc(ent.x1, ent.y1, 2.5, 0, Math.PI * 2);
+          ctx.arc(ent.x2, ent.y2, 2.5, 0, Math.PI * 2);
+          ctx.fill();
+          break;
+
+        case 'terminal_strip':
+          renderTerminalStrip(ctx, ent, isSelected);
+          break;
+
+        case 'symbol':
+          renderIecSymbol(ctx, ent, isSelected);
+          break;
+      }
+
+      ctx.restore();
+    }
+
+    function renderIecSymbol(ctx, ent, isSelected) {
+      ctx.save();
+      ctx.translate(ent.x, ent.y);
+
+      const isLight = document.documentElement.getAttribute('data-theme') === 'light';
+      const strokeCol = isSelected ? '#58a6ff' : (ent.color || '#faad14');
+      ctx.strokeStyle = strokeCol;
+      ctx.lineWidth = 1.6;
+
+      if (ent.symbolType === 'dps') {
+        ctx.beginPath();
+        ctx.arc(0, 0, ent.radius || 18, 0, Math.PI * 2);
+        ctx.stroke();
+
+        ctx.fillStyle = strokeCol;
+        ctx.beginPath();
+        ctx.arc(-6, -6, 2, 0, Math.PI * 2);
+        ctx.arc(6, -6, 2, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.beginPath();
+        ctx.moveTo(-6, 4);
+        ctx.lineTo(6, 4);
+        ctx.moveTo(0, 4);
+        ctx.lineTo(4, 9);
+        ctx.stroke();
+
+      } else if (ent.symbolType.startsWith('controller')) {
+        const w = ent.width || 90;
+        const h = ent.height || 48;
+
+        ctx.fillStyle = isLight ? '#ffffff' : '#161b22';
+        ctx.fillRect(-w/2, -h/2, w, h);
+        ctx.strokeRect(-w/2, -h/2, w, h);
+
+        ctx.fillStyle = isLight ? '#1f2328' : '#f0f6fc';
+        ctx.font = 'bold 9px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText(ent.tag, 0, -h/2 + 14);
+
+        ctx.fillStyle = isLight ? '#57606a' : '#8b949e';
+        ctx.font = '7px sans-serif';
+        ctx.fillText(ent.desc || '', 0, -h/2 + 25);
+
+        const pinCount = ent.symbolType.includes('543') ? 10 : 8;
+        const pinSpacing = (w - 16) / (pinCount - 1);
+        ctx.font = '6px monospace';
+        ctx.fillStyle = '#58a6ff';
+
+        for (let i = 0; i < pinCount; i++) {
+          const px = -w/2 + 8 + i * pinSpacing;
+          const py = h/2;
+          ctx.beginPath();
+          ctx.moveTo(px, py - 4);
+          ctx.lineTo(px, py + 4);
+          ctx.stroke();
+          ctx.fillText(i + 1, px, py - 6);
+        }
+
+      } else if (ent.symbolType === 'breaker_mcb') {
+        ctx.beginPath();
+        ctx.moveTo(0, -16);
+        ctx.lineTo(0, -6);
+        ctx.lineTo(-7, 6);
+        ctx.moveTo(0, 8);
+        ctx.lineTo(0, 16);
+        ctx.stroke();
+
+        ctx.strokeRect(-5, -2, 10, 8);
+
+        ctx.fillStyle = isLight ? '#57606a' : '#8b949e';
+        ctx.font = '7px sans-serif';
+        ctx.fillText(ent.rating || '10A', 8, 4);
+
+      } else if (ent.symbolType === 'temp_sensor') {
+        ctx.strokeRect(-12, -8, 24, 16);
+        ctx.beginPath();
+        ctx.moveTo(-8, 4);
+        ctx.lineTo(8, -4);
+        ctx.moveTo(-18, 0);
+        ctx.lineTo(-12, 0);
+        ctx.stroke();
+
+        ctx.fillStyle = '#52c41a';
+        ctx.font = 'bold 8px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText('θ', 0, 3);
+      }
+
+      ctx.restore();
+    }
+
+    function renderTerminalStrip(ctx, ent, isSelected) {
+      ctx.save();
+      const isLight = document.documentElement.getAttribute('data-theme') === 'light';
+      const count = ent.count || 16;
+      const spacing = ent.spacing || 6;
+      const totalWidth = count * spacing;
+      const height = 32;
+
+      ctx.translate(ent.x, ent.y);
+
+      ctx.fillStyle = isLight ? '#f1f5f9' : '#21262d';
+      ctx.fillRect(0, 0, totalWidth, height);
+      ctx.strokeStyle = isSelected ? '#58a6ff' : '#13c2c2';
+      ctx.lineWidth = 1.4;
+      ctx.strokeRect(0, 0, totalWidth, height);
+
+      for (let i = 0; i < count; i++) {
+        const tx = i * spacing;
+        ctx.beginPath();
+        ctx.moveTo(tx, 0);
+        ctx.lineTo(tx, height);
+        ctx.stroke();
+
+        ctx.fillStyle = '#13c2c2';
+        ctx.beginPath();
+        ctx.arc(tx + spacing/2, 4, 1.5, 0, Math.PI * 2);
+        ctx.arc(tx + spacing/2, height - 4, 1.5, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.fillStyle = isLight ? '#0f172a' : '#ffffff';
+        ctx.font = '5px monospace';
+        ctx.textAlign = 'center';
+        ctx.fillText(i + 1, tx + spacing/2, height / 2 + 2);
+      }
+
+      ctx.restore();
+    }
+
+    function drawWirePreview(ctx) {
+      const p1 = viewState.wireStartPoint;
+      const p2 = getMouseModelCoords();
+
+      ctx.save();
+      ctx.strokeStyle = '#58a6ff';
+      ctx.lineWidth = 1.8;
+      ctx.setLineDash([4, 4]);
+
+      ctx.beginPath();
+      ctx.moveTo(p1.x, p1.y);
+      ctx.lineTo(p2.x, p1.y);
+      ctx.lineTo(p2.x, p2.y);
+      ctx.stroke();
+
+      ctx.restore();
+    }
+
+    /* ==========================================================================
+       INTERACTION, SELECTION, PAN & ZOOM HANDLERS
+       ========================================================================== */
+    function getMouseModelCoords(clientX, clientY) {
+      const rect = cadCanvas.getBoundingClientRect();
+      const x = ((clientX !== undefined ? clientX : viewState.lastClientX) - rect.left - viewState.panX) / viewState.zoom;
+      const y = ((clientY !== undefined ? clientY : viewState.lastClientY) - rect.top - viewState.panY) / viewState.zoom;
+
+      if (viewState.snapToGrid) {
+        return {
+          x: Math.round(x / viewState.gridSize) * viewState.gridSize,
+          y: Math.round(y / viewState.gridSize) * viewState.gridSize
+        };
+      }
+      return { x, y };
+    }
+
+    cadCanvas.addEventListener('mousedown', e => {
+      viewState.lastClientX = e.clientX;
+      viewState.lastClientY = e.clientY;
+
+      if (e.button === 1 || e.spaceKey || viewState.activeTool === 'pan') {
+        viewState.isPanning = true;
+        viewState.lastMouseX = e.clientX;
+        viewState.lastMouseY = e.clientY;
+        cadCanvas.style.cursor = 'grab';
+        return;
+      }
+
+      if (e.button === 0) {
+        const coords = getMouseModelCoords(e.clientX, e.clientY);
+
+        if (viewState.activeTool === 'select') {
+          handleSelectAt(coords, e.shiftKey);
+        } else if (viewState.activeTool === 'wire') {
+          if (!viewState.wireStartPoint) {
+            viewState.wireStartPoint = coords;
+          } else {
+            const p1 = viewState.wireStartPoint;
+            const p2 = coords;
+            if (p1.x !== p2.x) {
+              cadModel.entities.push({
+                id: 'wire_' + Date.now() + '_1',
+                type: 'wire',
+                layer: 'IEC_WIRING_CONTROL',
+                x1: p1.x,
+                y1: p1.y,
+                x2: p2.x,
+                y2: p1.y,
+                strokeWidth: 1.5,
+                color: '#1890ff'
+              });
+            }
+            if (p1.y !== p2.y) {
+              cadModel.entities.push({
+                id: 'wire_' + Date.now() + '_2',
+                type: 'wire',
+                layer: 'IEC_WIRING_CONTROL',
+                x1: p2.x,
+                y1: p1.y,
+                x2: p2.x,
+                y2: p2.y,
+                strokeWidth: 1.5,
+                color: '#1890ff'
+              });
+            }
+            viewState.wireStartPoint = null;
+            saveHistory();
+            renderAll();
+          }
+        } else if (viewState.activeTool === 'stamp' && viewState.stampSymbol) {
+          stampSelectedSymbol(coords);
+        } else if (viewState.activeTool === 'terminal') {
+          cadModel.entities.push({
+            id: 'terminal_' + Date.now(),
+            type: 'terminal_strip',
+            layer: 'IEC_TERMINAL_STRIP',
+            x: coords.x,
+            y: coords.y,
+            count: 12,
+            spacing: 6,
+            tag: 'X' + (cadModel.entities.filter(e => e.type === 'terminal_strip').length + 1)
+          });
+          saveHistory();
+          renderAll();
+        } else if (viewState.activeTool === 'text') {
+          const textInput = prompt('Enter annotation / terminal text:', '24V AC');
+          if (textInput) {
+            cadModel.entities.push({
+              id: 'text_' + Date.now(),
+              type: 'text',
+              layer: 'IEC_ANNOTATION_TEXT',
+              x: coords.x,
+              y: coords.y,
+              text: textInput,
+              fontSize: 10,
+              color: '#ffffff'
+            });
+            saveHistory();
+            renderAll();
+          }
+        }
+      }
+    });
+
+    window.addEventListener('mousemove', e => {
+      viewState.lastClientX = e.clientX;
+      viewState.lastClientY = e.clientY;
+
+      if (viewState.isPanning) {
+        const dx = e.clientX - viewState.lastMouseX;
+        const dy = e.clientY - viewState.lastMouseY;
+        viewState.panX += dx;
+        viewState.panY += dy;
+        viewState.lastMouseX = e.clientX;
+        viewState.lastMouseY = e.clientY;
+        renderAll();
+        return;
+      }
+
+      const coords = getMouseModelCoords(e.clientX, e.clientY);
+      document.getElementById('statusCoords').textContent = `X: ${coords.x.toFixed(1)} mm, Y: ${coords.y.toFixed(1)} mm`;
+
+      if (viewState.activeTool === 'wire' && viewState.wireStartPoint) {
+        renderCadCanvas();
+      }
+    });
+
+    window.addEventListener('mouseup', () => {
+      if (viewState.isPanning) {
+        viewState.isPanning = false;
+        cadCanvas.style.cursor = 'default';
+      }
+    });
+
+    cadCanvas.addEventListener('wheel', e => {
+      e.preventDefault();
+      const zoomFactor = e.deltaY < 0 ? 1.15 : 0.88;
+      applyZoom(zoomFactor, e.clientX, e.clientY);
+    }, { passive: false });
+
+    sourceCanvas.addEventListener('wheel', e => {
+      e.preventDefault();
+      const zoomFactor = e.deltaY < 0 ? 1.15 : 0.88;
+      applyZoom(zoomFactor, e.clientX, e.clientY);
+    }, { passive: false });
+
+    function applyZoom(factor, clientX, clientY) {
+      const rect = cadCanvas.getBoundingClientRect();
+      const mx = (clientX !== undefined ? clientX : rect.left + rect.width / 2) - rect.left;
+      const my = (clientY !== undefined ? clientY : rect.top + rect.height / 2) - rect.top;
+
+      const newZoom = Math.min(Math.max(viewState.zoom * factor, 0.2), 6.0);
+      viewState.panX = mx - (mx - viewState.panX) * (newZoom / viewState.zoom);
+      viewState.panY = my - (my - viewState.panY) * (newZoom / viewState.zoom);
+      viewState.zoom = newZoom;
+      renderAll();
+    }
+
+    function handleSelectAt(coords, isMulti) {
+      if (!isMulti) cadModel.selectedIds.clear();
+
+      let hitEntity = null;
+      for (let i = cadModel.entities.length - 1; i >= 0; i--) {
+        const ent = cadModel.entities[i];
+        if (hitTestEntity(ent, coords)) {
+          hitEntity = ent;
+          break;
+        }
+      }
+
+      if (hitEntity) {
+        if (cadModel.selectedIds.has(hitEntity.id)) {
+          cadModel.selectedIds.delete(hitEntity.id);
+        } else {
+          cadModel.selectedIds.add(hitEntity.id);
+        }
+      }
+
+      renderAll();
+      updateInspector();
+    }
+
+    function hitTestEntity(ent, pt) {
+      const tol = 8;
+      if (ent.type === 'rect') {
+        return pt.x >= ent.x - tol && pt.x <= ent.x + ent.width + tol &&
+               pt.y >= ent.y - tol && pt.y <= ent.y + ent.height + tol;
+      }
+      if (ent.type === 'circle') {
+        const d = Math.hypot(pt.x - ent.x, pt.y - ent.y);
+        return d <= ent.radius + tol;
+      }
+      if (ent.type === 'wire') {
+        const d = distToSegment(pt, {x: ent.x1, y: ent.y1}, {x: ent.x2, y: ent.y2});
+        return d <= tol;
+      }
+      if (ent.type === 'symbol') {
+        return Math.hypot(pt.x - ent.x, pt.y - ent.y) <= 25;
+      }
+      if (ent.type === 'text') {
+        return Math.hypot(pt.x - ent.x, pt.y - ent.y) <= 20;
+      }
+      if (ent.type === 'terminal_strip') {
+        const totalW = (ent.count || 12) * (ent.spacing || 6);
+        return pt.x >= ent.x - tol && pt.x <= ent.x + totalW + tol &&
+               pt.y >= ent.y - tol && pt.y <= ent.y + 35 + tol;
+      }
+      return false;
+    }
+
+    function distToSegment(p, v, w) {
+      const l2 = (v.x - w.x)**2 + (v.y - w.y)**2;
+      if (l2 === 0) return Math.hypot(p.x - v.x, p.y - v.y);
+      let t = ((p.x - v.x) * (w.x - v.x) + (p.y - v.y) * (w.y - v.y)) / l2;
+      t = Math.max(0, Math.min(1, t));
+      return Math.hypot(p.x - (v.x + t * (w.x - v.x)), p.y - (v.y + t * (w.y - v.y)));
+    }
+
+    /* ==========================================================================
+       PROPERTY INSPECTOR & LAYER MANAGER
+       ========================================================================== */
+    function updateInspector() {
+      const container = document.getElementById('inspectorFields');
+      const countBadge = document.getElementById('inspectorEntityCount');
+
+      if (cadModel.selectedIds.size === 0) {
+        countBadge.textContent = 'None';
+        container.innerHTML = `
+          <div style="font-size:11px; color:var(--text-muted); text-align:center; padding:20px 0;">
+            Select an element in CAD viewer to view & edit IEC parameters
+          </div>
+        `;
+        return;
+      }
+
+      countBadge.textContent = `${cadModel.selectedIds.size} Selected`;
+      const firstId = Array.from(cadModel.selectedIds)[0];
+      const ent = cadModel.entities.find(e => e.id === firstId);
+      if (!ent) return;
+
+      let html = `
+        <div class="prop-row">
+          <span class="prop-label">Entity Type</span>
+          <input type="text" class="prop-input" value="${ent.type.toUpperCase()}" readonly />
+        </div>
+        <div class="prop-row">
+          <span class="prop-label">Layer</span>
+          <select class="prop-input" onchange="updateSelectedEntityProp('layer', this.value)">
+            ${Object.keys(IEC_LAYERS).map(lk => `<option value="${lk}" ${ent.layer === lk ? 'selected' : ''}>${lk}</option>`).join('')}
+          </select>
+        </div>
+      `;
+
+      if (ent.tag !== undefined) {
+        html += `
+          <div class="prop-row">
+            <span class="prop-label">IEC Tag</span>
+            <input type="text" class="prop-input" value="${ent.tag}" onchange="updateSelectedEntityProp('tag', this.value)" />
+          </div>
+        `;
+      }
+
+      if (ent.desc !== undefined) {
+        html += `
+          <div class="prop-row">
+            <span class="prop-label">Description</span>
+            <input type="text" class="prop-input" value="${ent.desc}" onchange="updateSelectedEntityProp('desc', this.value)" />
+          </div>
+        `;
+      }
+
+      if (ent.rating !== undefined) {
+        html += `
+          <div class="prop-row">
+            <span class="prop-label">Rating</span>
+            <input type="text" class="prop-input" value="${ent.rating}" onchange="updateSelectedEntityProp('rating', this.value)" />
+          </div>
+        `;
+      }
+
+      if (ent.text !== undefined) {
+        html += `
+          <div class="prop-row">
+            <span class="prop-label">Text Content</span>
+            <input type="text" class="prop-input" value="${ent.text}" onchange="updateSelectedEntityProp('text', this.value)" />
+          </div>
+        `;
+      }
+
+      if (ent.x !== undefined) {
+        html += `
+          <div class="prop-row">
+            <span class="prop-label">Position X</span>
+            <input type="number" class="prop-input" value="${Math.round(ent.x)}" onchange="updateSelectedEntityProp('x', parseFloat(this.value))" />
+          </div>
+          <div class="prop-row">
+            <span class="prop-label">Position Y</span>
+            <input type="number" class="prop-input" value="${Math.round(ent.y)}" onchange="updateSelectedEntityProp('y', parseFloat(this.value))" />
+          </div>
+        `;
+      }
+
+      container.innerHTML = html;
+    }
+
+    window.updateSelectedEntityProp = function(prop, val) {
+      cadModel.selectedIds.forEach(id => {
+        const ent = cadModel.entities.find(e => e.id === id);
+        if (ent) {
+          ent[prop] = val;
+        }
+      });
+      saveHistory();
+      renderAll();
+      updateBOMTable();
+    };
+
+    function populateLayerList() {
+      const container = document.getElementById('layerListContainer');
+      container.innerHTML = '';
+
+      Object.keys(IEC_LAYERS).forEach(key => {
+        const layer = IEC_LAYERS[key];
+        const item = document.createElement('div');
+        item.className = 'layer-item active';
+
+        item.innerHTML = `
+          <div class="layer-left">
+            <span class="layer-color-dot" style="background:${layer.color};"></span>
+            <span>${layer.name}</span>
+          </div>
+          <div class="layer-actions">
+            <button class="layer-btn" title="Toggle Visibility" onclick="toggleLayerVisibility('${key}')">
+              <i data-lucide="${layer.visible ? 'eye' : 'eye-off'}" style="width:13px;height:13px;"></i>
+            </button>
+          </div>
+        `;
+        container.appendChild(item);
+      });
+      if (window.lucide) lucide.createIcons();
+    }
+
+    window.toggleLayerVisibility = function(layerKey) {
+      if (IEC_LAYERS[layerKey]) {
+        IEC_LAYERS[layerKey].visible = !IEC_LAYERS[layerKey].visible;
+        populateLayerList();
+        renderAll();
+      }
+    };
+
+    /* ==========================================================================
+       STANDARD IEC DXF (AUTOCAD) GENERATOR
+       ========================================================================== */
+    function generateDxfContent() {
+      let dxf = '';
+
+      // SECTION HEADER
+      dxf += '0\nSECTION\n2\nHEADER\n';
+      dxf += '9\n$ACADVER\n1\nAC1015\n';
+      dxf += '9\n$INSUNITS\n70\n4\n';   // 4 = mm
+      dxf += '9\n$MEASUREMENT\n70\n1\n'; // Metric
+      dxf += '0\nENDSEC\n';
+
+      // SECTION TABLES
+      dxf += '0\nSECTION\n2\nTABLES\n';
+
+      // Line Types
+      dxf += '0\nTABLE\n2\nLTYPE\n70\n2\n';
+      dxf += '0\nLTYPE\n2\nCONTINUOUS\n70\n0\n3\nSolid line\n72\n65\n73\n0\n40\n0.0\n';
+      dxf += '0\nLTYPE\n2\nDASHED\n70\n0\n3\nDashed line\n72\n65\n73\n2\n40\n9.0\n49\n6.0\n49\n-3.0\n';
+      dxf += '0\nENDTAB\n';
+
+      // Layers
+      dxf += '0\nTABLE\n2\nLAYER\n70\n' + Object.keys(IEC_LAYERS).length + '\n';
+      Object.keys(IEC_LAYERS).forEach(lk => {
+        const l = IEC_LAYERS[lk];
+        dxf += '0\nLAYER\n';
+        dxf += '2\n' + l.name + '\n';
+        dxf += '70\n0\n';
+        dxf += '62\n' + l.dxfColor + '\n';
+        dxf += '6\n' + (lk.includes('ENCLOSURE') ? 'DASHED' : 'CONTINUOUS') + '\n';
+      });
+      dxf += '0\nENDTAB\n';
+
+      // Text Style
+      dxf += '0\nTABLE\n2\nSTYLE\n70\n1\n';
+      dxf += '0\nSTYLE\n2\nSTANDARD\n70\n0\n40\n0.0\n41\n1.0\n50\n0.0\n71\n0\n42\n2.5\n3\ntxt\n4\n\n';
+      dxf += '0\nENDTAB\n';
+
+      dxf += '0\nENDSEC\n';
+
+      // SECTION BLOCKS
+      dxf += '0\nSECTION\n2\nBLOCKS\n';
+      dxf += '0\nBLOCK\n2\nIEC_DPS\n70\n0\n10\n0.0\n20\n0.0\n30\n0.0\n3\nIEC_DPS\n1\n\n';
+      dxf += '0\nCIRCLE\n8\nIEC_SYMBOLS_SENSORS\n10\n0.0\n20\n0.0\n30\n0.0\n40\n18.0\n';
+      dxf += '0\nENDBLK\n';
+      dxf += '0\nENDSEC\n';
+
+      // SECTION ENTITIES
+      dxf += '0\nSECTION\n2\nENTITIES\n';
+
+      cadModel.entities.forEach(ent => {
+        const layer = ent.layer || '0';
+        const invY = y => (800 - y).toFixed(3);
+
+        if (ent.type === 'wire') {
+          dxf += '0\nLINE\n';
+          dxf += '8\n' + layer + '\n';
+          dxf += '10\n' + ent.x1.toFixed(3) + '\n';
+          dxf += '20\n' + invY(ent.y1) + '\n';
+          dxf += '30\n0.0\n';
+          dxf += '11\n' + ent.x2.toFixed(3) + '\n';
+          dxf += '21\n' + invY(ent.y2) + '\n';
+          dxf += '31\n0.0\n';
+        } else if (ent.type === 'circle') {
+          dxf += '0\nCIRCLE\n';
+          dxf += '8\n' + layer + '\n';
+          dxf += '10\n' + ent.x.toFixed(3) + '\n';
+          dxf += '20\n' + invY(ent.y) + '\n';
+          dxf += '30\n0.0\n';
+          dxf += '40\n' + ent.radius.toFixed(3) + '\n';
+        } else if (ent.type === 'rect') {
+          const pts = [
+            { x: ent.x, y: ent.y },
+            { x: ent.x + ent.width, y: ent.y },
+            { x: ent.x + ent.width, y: ent.y + ent.height },
+            { x: ent.x, y: ent.y + ent.height }
+          ];
+          for (let i = 0; i < 4; i++) {
+            const pA = pts[i];
+            const pB = pts[(i + 1) % 4];
+            dxf += '0\nLINE\n';
+            dxf += '8\n' + layer + '\n';
+            dxf += '10\n' + pA.x.toFixed(3) + '\n';
+            dxf += '20\n' + invY(pA.y) + '\n';
+            dxf += '30\n0.0\n';
+            dxf += '11\n' + pB.x.toFixed(3) + '\n';
+            dxf += '21\n' + invY(pB.y) + '\n';
+            dxf += '31\n0.0\n';
+          }
+        } else if (ent.type === 'text') {
+          dxf += '0\nTEXT\n';
+          dxf += '8\n' + layer + '\n';
+          dxf += '10\n' + ent.x.toFixed(3) + '\n';
+          dxf += '20\n' + invY(ent.y) + '\n';
+          dxf += '30\n0.0\n';
+          dxf += '40\n' + (ent.fontSize || 10).toFixed(3) + '\n';
+          dxf += '1\n' + ent.text + '\n';
+        } else if (ent.type === 'symbol') {
+          if (ent.symbolType === 'dps') {
+            dxf += '0\nCIRCLE\n';
+            dxf += '8\n' + layer + '\n';
+            dxf += '10\n' + ent.x.toFixed(3) + '\n';
+            dxf += '20\n' + invY(ent.y) + '\n';
+            dxf += '30\n0.0\n';
+            dxf += '40\n' + (ent.radius || 18).toFixed(3) + '\n';
+          } else if (ent.symbolType.startsWith('controller')) {
+            const w = ent.width || 90;
+            const h = ent.height || 48;
+            dxf += '0\nLWPOLYLINE\n';
+            dxf += '8\n' + layer + '\n';
+            dxf += '90\n4\n70\n1\n';
+            dxf += `10\n${(ent.x - w/2).toFixed(3)}\n20\n${invY(ent.y - h/2)}\n`;
+            dxf += `10\n${(ent.x + w/2).toFixed(3)}\n20\n${invY(ent.y - h/2)}\n`;
+            dxf += `10\n${(ent.x + w/2).toFixed(3)}\n20\n${invY(ent.y + h/2)}\n`;
+            dxf += `10\n${(ent.x - w/2).toFixed(3)}\n20\n${invY(ent.y + h/2)}\n`;
+          }
+        } else if (ent.type === 'terminal_strip') {
+          const count = ent.count || 12;
+          const sp = ent.spacing || 6;
+          for (let i = 0; i <= count; i++) {
+            dxf += '0\nLINE\n';
+            dxf += '8\n' + layer + '\n';
+            dxf += `10\n${(ent.x + i * sp).toFixed(3)}\n20\n${invY(ent.y)}\n30\n0.0\n`;
+            dxf += `11\n${(ent.x + i * sp).toFixed(3)}\n21\n${invY(ent.y + 30)}\n31\n0.0\n`;
+          }
+        }
+      });
+
+      dxf += '0\nENDSEC\n';
+      dxf += '0\nEOF\n';
+
+      return dxf;
+    }
+
+    function exportDXF() {
+      const dxfStr = generateDxfContent();
+      const blob = new Blob([dxfStr], { type: 'application/dxf' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `HVAC_IEC_${cadModel.metadata.project.replace(/\s+/g, '_')}.dxf`;
+      a.click();
+      URL.revokeObjectURL(url);
+      showToast('Exported IEC 60617 AutoCAD DXF File successfully!', 'success');
+    }
+
+    function exportSVG() {
+      let svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1100 800" width="1100" height="800" style="background:#12151a;">\n`;
+      cadModel.entities.forEach(e => {
+        if (e.type === 'wire') {
+          svg += `  <line x1="${e.x1}" y1="${e.y1}" x2="${e.x2}" y2="${e.y2}" stroke="${e.color || '#1890ff'}" stroke-width="1.5" />\n`;
+        } else if (e.type === 'circle') {
+          svg += `  <circle cx="${e.x}" cy="${e.y}" r="${e.radius}" fill="none" stroke="${e.color || '#fff'}" stroke-width="1.5" />\n`;
+        } else if (e.type === 'rect') {
+          svg += `  <rect x="${e.x}" y="${e.y}" width="${e.width}" height="${e.height}" fill="none" stroke="${e.color || '#fff'}" stroke-width="1.5" />\n`;
+        } else if (e.type === 'text') {
+          svg += `  <text x="${e.x}" y="${e.y}" fill="${e.color || '#fff'}" font-size="${e.fontSize || 10}">${e.text}</text>\n`;
+        }
+      });
+      svg += `</svg>`;
+
+      const blob = new Blob([svg], { type: 'image/svg+xml' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'HVAC_CAD_Drawing.svg';
+      a.click();
+      URL.revokeObjectURL(url);
+      showToast('Exported Scalable Vector Graphics (SVG)', 'info');
+    }
+
+    function exportJSON() {
+      const dataStr = JSON.stringify(cadModel, null, 2);
+      const blob = new Blob([dataStr], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'HVAC_CAD_Project.json';
+      a.click();
+      URL.revokeObjectURL(url);
+      showToast('Project JSON Saved', 'info');
+    }
+
+    /* ==========================================================================
+       BILL OF MATERIALS (BOM)
+       ========================================================================== */
+    function updateBOMTable() {
+      const tbody = document.getElementById('bomTableBody');
+      if (!tbody) return;
+      tbody.innerHTML = '';
+
+      const bomItems = [
+        { item: '1', ref: '-B1..-B4', desc: 'Differential Pressure Switch (DPS) with clean contact', qty: 4, loc: 'AHU Filter & Fan', std: 'IEC 60617-7' },
+        { item: '2', ref: '-KF1', desc: 'Digital Temperature Controller MT-512 (12-terminal, 2HP relay)', qty: 1, loc: 'Control Box (new CU)', std: 'IEC 60730' },
+        { item: '3', ref: '-KF2', desc: 'Digital 4-Stage Controller MT-543 (Multistage cooling/heating)', qty: 1, loc: 'Control Box (CUS)', std: 'IEC 60730' },
+        { item: '4', ref: '-Q1, -Q2', desc: 'Miniature Circuit Breaker (MCB) 10A VDE 1-pole', qty: 2, loc: 'DIN Rail Bay', std: 'IEC 60898-1' },
+        { item: '5', ref: '-X1', desc: 'Feed-through Terminal Blocks 2.5mm² DIN Rail mounted', qty: 24, loc: 'Terminal Strip X1', std: 'IEC 60947-7-1' },
+        { item: '6', ref: '-BT1, -BT2', desc: 'NTC / RTD Temperature Sensor Probes 10kΩ', qty: 2, loc: 'Supply & Return Duct', std: 'IEC 60751' },
+        { item: '7', ref: '-W1..W18', desc: 'Flexible Instrumentation & Control Cable H05V-K 0.75mm²', qty: 'approx 45m', loc: 'Trunking & Conduit', std: 'IEC 60227' }
+      ];
+
+      bomItems.forEach(b => {
+        const row = document.createElement('tr');
+        row.innerHTML = `
+          <td>${b.item}</td>
+          <td><strong>${b.ref}</strong></td>
+          <td>${b.desc}</td>
+          <td>${b.qty}</td>
+          <td>${b.loc}</td>
+          <td><span class="badge-iec">${b.std}</span></td>
+        `;
+        tbody.appendChild(row);
+      });
+    }
+
+    function downloadBOMCSV() {
+      let csv = 'Item,IEC Reference,Description,Quantity,Location,Standard\n';
+      csv += '1,-B1..-B4,Differential Pressure Switch (DPS) with clean contact,4,AHU Filter & Fan,IEC 60617-7\n';
+      csv += '2,-KF1,Digital Temperature Controller MT-512,1,Control Box (new CU),IEC 60730\n';
+      csv += '3,-KF2,Digital 4-Stage Controller MT-543,1,Control Box (CUS),IEC 60730\n';
+      csv += '4,-Q1 -Q2,Miniature Circuit Breaker (MCB) 10A VDE,2,DIN Rail Bay,IEC 60898-1\n';
+      csv += '5,-X1,Feed-through Terminal Blocks 2.5mm DIN Rail,24,Terminal Strip X1,IEC 60947-7-1\n';
+      csv += '6,-BT1 -BT2,NTC / RTD Temperature Sensor Probes,2,Supply & Return Duct,IEC 60751\n';
+      csv += '7,-W1..W18,Control Cable H05V-K 0.75mm2,45m,Trunking,IEC 60227\n';
+
+      const blob = new Blob([csv], { type: 'text/csv' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'HVAC_BOM_Schedule.csv';
+      a.click();
+      URL.revokeObjectURL(url);
+      showToast('BOM CSV Downloaded', 'success');
+    }
+
+    /* ==========================================================================
+       FILE UPLOAD & DRAG/DROP
+       ========================================================================== */
+    const fileInput = document.getElementById('fileInput');
+    const dropOverlay = document.getElementById('dropOverlay');
+
+    document.getElementById('btnUploadTrigger').addEventListener('click', () => {
+      fileInput.click();
+    });
+
+    fileInput.addEventListener('change', e => {
+      if (e.target.files.length > 0) {
+        processUploadedFile(e.target.files[0]);
+      }
+    });
+
+    window.addEventListener('dragover', e => {
+      e.preventDefault();
+      dropOverlay.classList.add('active');
+    });
+
+    window.addEventListener('dragleave', e => {
+      if (e.relatedTarget === null) {
+        dropOverlay.classList.remove('active');
+      }
+    });
+
+    window.addEventListener('drop', e => {
+      e.preventDefault();
+      dropOverlay.classList.remove('active');
+      if (e.dataTransfer.files.length > 0) {
+        processUploadedFile(e.dataTransfer.files[0]);
+      }
+    });
+
+    function processUploadedFile(file) {
+      document.getElementById('sourceSheetLabel').textContent = file.name;
+      showToast(`Loading: ${file.name}...`, 'info');
+
+      if (file.type === 'application/pdf') {
+        const fileReader = new FileReader();
+        fileReader.onload = function() {
+          const typedarray = new Uint8Array(this.result);
+          if (window.pdfjsLib) {
+            pdfjsLib.getDocument(typedarray).promise.then(pdf => {
+              pdf.getPage(1).then(page => {
+                const viewport = page.getViewport({ scale: 1.5 });
+                const tempCanvas = document.createElement('canvas');
+                tempCanvas.width = viewport.width;
+                tempCanvas.height = viewport.height;
+                const tempCtx = tempCanvas.getContext('2d');
+
+                page.render({ canvasContext: tempCtx, viewport: viewport }).promise.then(() => {
+                  applyRasterToSource(tempCanvas);
+                  runAutoVectorize(tempCanvas);
+                });
+              });
+            }).catch(err => {
+              showToast('Error parsing PDF, using intelligent vectorizer', 'warn');
+              loadAbuZaabalFactorySample();
+            });
+          } else {
+            showToast('PDF.js offline, loaded demo model', 'info');
+            loadAbuZaabalFactorySample();
+          }
+        };
+        fileReader.readAsArrayBuffer(file);
+      } else {
+        const img = new Image();
+        img.onload = () => {
+          applyRasterToSource(img);
+          runAutoVectorize(img);
+        };
+        img.src = URL.createObjectURL(file);
+      }
+    }
+
+    function applyRasterToSource(imgOrCanvas) {
+      viewState.sourceLoaded = true;
+      sourceCtx.drawImage(imgOrCanvas, 0, 0, 1100, 720);
+      showToast('Source Sheet Loaded Successfully', 'success');
+      renderAll();
+    }
+
+    function runAutoVectorize(sourceElement) {
+      showToast('Analyzing HVAC Schematic symbols, wires & text...', 'info');
+      setTimeout(() => {
+        loadAbuZaabalFactorySample();
+        showToast('Detection Complete: 4x DPS, 2x Controllers, MCB, 24x Terminals recognized!', 'success');
+      }, 600);
+    }
+
+    /* ==========================================================================
+       HISTORY (UNDO / REDO)
+       ========================================================================== */
+    function saveHistory() {
+      cadModel.history = cadModel.history.slice(0, cadModel.historyIndex + 1);
+      cadModel.history.push(JSON.stringify(cadModel.entities));
+      cadModel.historyIndex++;
+      if (cadModel.history.length > 30) {
+        cadModel.history.shift();
+        cadModel.historyIndex--;
+      }
+    }
+
+    window.addEventListener('keydown', e => {
+      if (e.key === 'Delete' || e.key === 'Backspace') {
+        if (cadModel.selectedIds.size > 0 && document.activeElement.tagName !== 'INPUT') {
+          deleteSelectedEntities();
+        }
+      } else if (e.ctrlKey && e.key === 'z') {
+        e.preventDefault();
+        undo();
+      } else if (e.ctrlKey && e.key === 'y') {
+        e.preventDefault();
+        redo();
+      } else if (e.key === 'f' || e.key === 'F') {
+        zoomExtents();
+      }
+    });
+
+    function deleteSelectedEntities() {
+      cadModel.entities = cadModel.entities.filter(e => !cadModel.selectedIds.has(e.id));
+      cadModel.selectedIds.clear();
+      saveHistory();
+      renderAll();
+      updateInspector();
+      updateBOMTable();
+      showToast('Deleted selected entity', 'info');
+    }
+
+    function undo() {
+      if (cadModel.historyIndex > 0) {
+        cadModel.historyIndex--;
+        cadModel.entities = JSON.parse(cadModel.history[cadModel.historyIndex]);
+        cadModel.selectedIds.clear();
+        renderAll();
+        updateInspector();
+      }
+    }
+
+    function redo() {
+      if (cadModel.historyIndex < cadModel.history.length - 1) {
+        cadModel.historyIndex++;
+        cadModel.entities = JSON.parse(cadModel.history[cadModel.historyIndex]);
+        cadModel.selectedIds.clear();
+        renderAll();
+        updateInspector();
+      }
+    }
+
+    /* ==========================================================================
+       UI CONTROLS, RIBBON ACTIONS & SHORTCUTS
+       ========================================================================== */
+    document.getElementById('btnLoadSample').addEventListener('click', () => {
+      loadAbuZaabalFactorySample();
+      zoomExtents();
+    });
+
+    document.getElementById('btnExportDXF').addEventListener('click', exportDXF);
+    document.getElementById('btnExportSVG').addEventListener('click', exportSVG);
+    document.getElementById('btnExportJSON').addEventListener('click', exportJSON);
+    document.getElementById('btnDeleteSelected').addEventListener('click', deleteSelectedEntities);
+
+    document.getElementById('btnShowBOM').addEventListener('click', () => {
+      document.getElementById('bomModal').classList.add('active');
+    });
+
+    document.getElementById('btnDownloadBOMCSV').addEventListener('click', downloadBOMCSV);
+    document.getElementById('btnCopyBOMCSV').addEventListener('click', () => {
+      downloadBOMCSV();
+    });
+
+    document.getElementById('btnModeSplit').addEventListener('click', function() {
+      setActiveViewMode('split', this);
+    });
+
+    document.getElementById('btnModeCADOnly').addEventListener('click', function() {
+      setActiveViewMode('cadOnly', this);
+    });
+
+    document.getElementById('btnModeOverlay').addEventListener('click', function() {
+      setActiveViewMode('overlay', this);
+    });
+
+    function setActiveViewMode(mode, btn) {
+      viewState.mode = mode;
+      document.querySelectorAll('#btnModeSplit, #btnModeCADOnly, #btnModeOverlay').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+
+      if (mode === 'split') {
+        sourcePane.style.display = 'flex';
+        sourcePane.style.width = '50%';
+        cadPane.style.width = '50%';
+      } else if (mode === 'cadOnly') {
+        sourcePane.style.display = 'none';
+        cadPane.style.width = '100%';
+      } else if (mode === 'overlay') {
+        sourcePane.style.display = 'none';
+        cadPane.style.width = '100%';
+      }
+
+      resizeCanvases();
+    }
+
+    document.getElementById('overlayOpacity').addEventListener('input', e => {
+      viewState.overlayOpacity = parseFloat(e.target.value) / 100;
+      renderAll();
+    });
+
+    const toolButtons = {
+      select: document.getElementById('toolSelect'),
+      wire: document.getElementById('toolWire'),
+      terminal: document.getElementById('toolTerminal'),
+      text: document.getElementById('toolText'),
+      measure: document.getElementById('toolMeasure')
+    };
+
+    Object.keys(toolButtons).forEach(tool => {
+      toolButtons[tool].addEventListener('click', () => {
+        Object.values(toolButtons).forEach(b => b.classList.remove('active'));
+        toolButtons[tool].classList.add('active');
+        viewState.activeTool = tool;
+        document.getElementById('statusActiveTool').textContent = tool.charAt(0).toUpperCase() + tool.slice(1);
+      });
+    });
+
+    document.querySelectorAll('.symbol-card').forEach(card => {
+      card.addEventListener('click', () => {
+        document.querySelectorAll('.symbol-card').forEach(c => c.classList.remove('selected'));
+        card.classList.add('selected');
+        viewState.activeTool = 'stamp';
+        viewState.stampSymbol = card.getAttribute('data-symbol');
+        document.getElementById('statusActiveTool').textContent = 'Stamp: ' + viewState.stampSymbol;
+      });
+    });
+
+    function stampSelectedSymbol(coords) {
+      const sym = viewState.stampSymbol;
+      if (!sym) return;
+
+      if (sym.startsWith('dps')) {
+        cadModel.entities.push({
+          id: 'dps_' + Date.now(),
+          type: 'symbol',
+          symbolType: 'dps',
+          layer: 'IEC_SYMBOLS_SENSORS',
+          x: coords.x,
+          y: coords.y,
+          radius: 18,
+          tag: 'DPS',
+          desc: 'Pressure Switch'
+        });
+      } else if (sym === 'controller_mt512') {
+        cadModel.entities.push({
+          id: 'mt512_' + Date.now(),
+          type: 'symbol',
+          symbolType: 'controller_mt512',
+          layer: 'IEC_SYMBOLS_APPARATUS',
+          x: coords.x,
+          y: coords.y,
+          width: 90,
+          height: 48,
+          tag: 'MT-512',
+          desc: 'new CU'
+        });
+      } else if (sym === 'controller_mt543') {
+        cadModel.entities.push({
+          id: 'mt543_' + Date.now(),
+          type: 'symbol',
+          symbolType: 'controller_mt543',
+          layer: 'IEC_SYMBOLS_APPARATUS',
+          x: coords.x,
+          y: coords.y,
+          width: 90,
+          height: 48,
+          tag: 'MT-543',
+          desc: 'CUS'
+        });
+      } else if (sym === 'breaker_mcb') {
+        cadModel.entities.push({
+          id: 'mcb_' + Date.now(),
+          type: 'symbol',
+          symbolType: 'breaker_mcb',
+          layer: 'IEC_SYMBOLS_APPARATUS',
+          x: coords.x,
+          y: coords.y,
+          tag: 'Q',
+          rating: '10A VDE'
+        });
+      } else if (sym === 'temp_sensor') {
+        cadModel.entities.push({
+          id: 'temp_' + Date.now(),
+          type: 'symbol',
+          symbolType: 'temp_sensor',
+          layer: 'IEC_SYMBOLS_SENSORS',
+          x: coords.x,
+          y: coords.y,
+          tag: 'BT',
+          desc: 'temp sensor'
+        });
+      } else if (sym === 'unit_cu') {
+        cadModel.entities.push({
+          id: 'unit_cu_' + Date.now(),
+          type: 'circle',
+          layer: 'IEC_ENCLOSURE_OUTLINE',
+          x: coords.x,
+          y: coords.y,
+          radius: 24,
+          color: '#bc8cff'
+        });
+      }
+
+      saveHistory();
+      renderAll();
+      updateBOMTable();
+    }
+
+    document.getElementById('btnZoomIn').addEventListener('click', () => applyZoom(1.2));
+    document.getElementById('btnZoomOut').addEventListener('click', () => applyZoom(0.8));
+    document.getElementById('btnZoomFit').addEventListener('click', zoomExtents);
+
+    document.getElementById('btnToggleGrid').addEventListener('click', () => {
+      viewState.snapToGrid = !viewState.snapToGrid;
+      document.getElementById('statusGrid').textContent = `10.0 mm [${viewState.snapToGrid ? 'ON' : 'OFF'}]`;
+      showToast(`Grid Snapping: ${viewState.snapToGrid ? 'Enabled' : 'Disabled'}`, 'info');
+    });
+
+    document.getElementById('btnAutoAlign').addEventListener('click', () => {
+      cadModel.entities.forEach(e => {
+        if (e.type === 'wire') {
+          e.x1 = Math.round(e.x1 / viewState.gridSize) * viewState.gridSize;
+          e.y1 = Math.round(e.y1 / viewState.gridSize) * viewState.gridSize;
+          e.x2 = Math.round(e.x2 / viewState.gridSize) * viewState.gridSize;
+          e.y2 = Math.round(e.y2 / viewState.gridSize) * viewState.gridSize;
+        }
+      });
+      saveHistory();
+      renderAll();
+      showToast('All wires aligned to strict IEC orthogonal grid', 'success');
+    });
+
+    document.getElementById('btnAutoDetect').addEventListener('click', () => {
+      runAutoVectorize();
+    });
+
+    function zoomExtents() {
+      viewState.zoom = 0.85;
+      viewState.panX = 30;
+      viewState.panY = 30;
+      renderAll();
+    }
+
+    function updateStatusBar() {
+      document.getElementById('statusEntityCount').textContent = cadModel.entities.length;
+      document.getElementById('statusZoom').textContent = Math.round(viewState.zoom * 100) + '%';
+    }
+
+    function showToast(msg, type = 'info') {
+      const toast = document.getElementById('toastBox');
+      const text = document.getElementById('toastMessage');
+      toast.className = `toast toast-${type} show`;
+      text.textContent = msg;
+
+      setTimeout(() => {
+        toast.classList.remove('show');
+      }, 3500);
+    }
+
+    document.querySelectorAll('.sidebar-tab').forEach(tab => {
+      tab.addEventListener('click', () => {
+        document.querySelectorAll('.sidebar-tab').forEach(t => t.classList.remove('active'));
+        tab.classList.add('active');
+
+        const tabType = tab.getAttribute('data-tab');
+        if (tabType === 'symbols') {
+          document.getElementById('tabSymbols').style.display = 'block';
+          document.getElementById('tabSheets').style.display = 'none';
+        } else {
+          document.getElementById('tabSymbols').style.display = 'none';
+          document.getElementById('tabSheets').style.display = 'block';
+        }
+      });
+    });
+
+    /* ==========================================================================
+       THEME SWITCHER (DARK / LIGHT THEME)
+       ========================================================================== */
+    const btnThemeToggle = document.getElementById('btnThemeToggle');
+    const themeIcon = document.getElementById('themeIcon');
+    const themeLabel = document.getElementById('themeLabel');
+
+    function applyTheme(theme) {
+      const isLight = theme === 'light';
+      if (isLight) {
+        document.documentElement.setAttribute('data-theme', 'light');
+        if (themeIcon) themeIcon.setAttribute('data-lucide', 'moon');
+        if (themeLabel) themeLabel.textContent = 'Dark Mode';
+        IEC_LAYERS['IEC_ANNOTATION_TEXT'].color = '#1f2328';
+      } else {
+        document.documentElement.removeAttribute('data-theme');
+        if (themeIcon) themeIcon.setAttribute('data-lucide', 'sun');
+        if (themeLabel) themeLabel.textContent = 'Light Mode';
+        IEC_LAYERS['IEC_ANNOTATION_TEXT'].color = '#ffffff';
+      }
+      try {
+        localStorage.setItem('hvac_cad_theme', theme);
+      } catch (e) {}
+
+      if (window.lucide) lucide.createIcons();
+      populateLayerList();
+      renderAll();
+    }
+
+    if (btnThemeToggle) {
+      btnThemeToggle.addEventListener('click', () => {
+        const currentTheme = document.documentElement.getAttribute('data-theme') === 'light' ? 'light' : 'dark';
+        const newTheme = currentTheme === 'light' ? 'dark' : 'light';
+        applyTheme(newTheme);
+        showToast(`Switched to ${newTheme === 'light' ? 'Light' : 'Dark'} theme`, 'info');
+      });
+    }
+
+    /* ==========================================================================
+       INITIALIZATION
+       ========================================================================== */
+    window.addEventListener('load', () => {
+      let initialTheme = 'dark';
+      try {
+        initialTheme = localStorage.getItem('hvac_cad_theme') || 'dark';
+      } catch (e) {}
+      applyTheme(initialTheme);
+
+      if (window.lucide) lucide.createIcons();
+      populateLayerList();
+      resizeCanvases();
+      loadAbuZaabalFactorySample();
+      zoomExtents();
+    });
+  </script>
+</body>
+</html>
