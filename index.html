@@ -2578,15 +2578,36 @@
     }
 
     function exportDXF() {
+      const entityCount = cadModel.entities.length;
+      if (entityCount === 0) {
+        showToast(
+          'Nothing to export: load the demo sheet, add CAD objects, or wait for sheet analysis to finish.',
+          'warn'
+        );
+        return;
+      }
+
       const dxfStr = generateDxfContent();
-      const blob = new Blob([dxfStr], { type: 'application/dxf' });
+      const blob = new Blob([dxfStr], { type: 'application/dxf;charset=utf-8' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `HVAC_IEC_${cadModel.metadata.project.replace(/\s+/g, '_')}.dxf`;
+      const projectName = (cadModel.metadata.project || 'Drawing')
+        .replace(/[^\w-]+/g, '_')
+        .replace(/^_+|_+$/g, '') || 'Drawing';
+      a.download = `HVAC_IEC_${projectName}.dxf`;
+      a.style.display = 'none';
+      document.body.appendChild(a);
       a.click();
-      URL.revokeObjectURL(url);
-      showToast('Exported IEC 60617 AutoCAD DXF File successfully!', 'success');
+
+      // Do not revoke immediately: some browsers have not started reading the
+      // Blob by the time click() returns.
+      setTimeout(() => {
+        URL.revokeObjectURL(url);
+        a.remove();
+      }, 1000);
+
+      showToast(`Exported ${entityCount} CAD entities to an AutoCAD DXF file.`, 'success');
     }
 
     function exportSVG() {
